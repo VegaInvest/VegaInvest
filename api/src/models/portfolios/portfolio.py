@@ -13,12 +13,15 @@ plt.style.use("ggplot")
 
 class Portfolio(object):
     # Portfolio class creates portfolio instances for user portfolios using stocks in Stock class
-
-    def __init__(self, user_email, risk_appetite, tickers=None, weights=None, _id=None):
+    #def __init__(self, user_email, risk_appetite, tickers=None, weights=None, _id=None): 
+    def __init__(self, user_email, risk_appetite, amount_invest,goal, horizon tickers=None, weights=None, _id=None): 
         self.user_email = user_email
         self.risk_appetite = risk_appetite
         self.tickers = PortfolioConstants.TICKERS if tickers is None else tickers
         self.weights = weights
+        self.amount_invest= amount_invest
+        self.goal= goal
+        self.horizon= horizon
         self._id = uuid.uuid4().hex if _id is None else _id
 
     def __repr__(self):
@@ -250,6 +253,9 @@ class Portfolio(object):
             "risk_appetite": self.risk_appetite,
             "tickers": self.tickers,
             "weights": self.weights,
+            "amount_invest": self.amount_invest,
+            "goal" : self.goal,
+            "horizon" : self.horizon
         }
 
     def return_PortfolioID(self, email):

@@ -1,0 +1,5 @@
+
+api/src/models/users/__pycache__/views.cpython-39.pyc
+api/src/models/users/__pycache__/user.cpython-39.pyc
+*.pyc
+*.pyc
