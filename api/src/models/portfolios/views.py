@@ -166,9 +166,9 @@ def pushParams(email):
         risk_appetite = port_data["risk_appetite"]
         risk_appetite = str(risk_appetite)
         horizon = port_data["horizon"]
-        horizon = str(horizon)
+        horizon = float(horizon)
         goal = port_data["goal"]
-        goal = str(goal)
+        goal = float(goal)
         print(risk_appetite)
         return jsonify(
             {
