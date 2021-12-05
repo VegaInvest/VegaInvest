@@ -66,51 +66,37 @@ def create_portfolio():            # Views form to create portfolio associated w
         if not str.isnumeric(amount_invest):
             if e==0:
                 msg = "Amount Invested is not a valid type"
-            else:
-                msg = ", Amount Invested is not a valid type"
-            ermsg = ermsg + msg
+                ermsg = msg
             e+=1
         if not str.isnumeric(goal):
             if e==0:
                 msg = "Goal is not a valid type"
-            else:
-                msg = ", Goal Invested is not a valid type"
-            ermsg = ermsg + msg
+                ermsg = ermsg + msg
             e+=1
         if not str.isnumeric(horizon):
             if e==0:
                 msg = "Horizon is not a valid type"
-            else:
-                msg = ", Horizon Invested is not a valid type"
-            ermsg = ermsg + msg
+                ermsg = ermsg + msg
             e+=1
         if str.isnumeric(amount_invest) and float(amount_invest)<0 :
             if e==0:
                 msg = "Amount Invested must be greater than $0!"
-            else:
-                msg = ", Amount Invested must be greater than $0!"
-            ermsg = ermsg + msg
+                ermsg = ermsg + msg
             e+=1
         if str.isnumeric(goal) and float(goal)<0 :
             if e==0:
                 msg = "Goal must be greater than $0!"
-            else:
-                msg = ", Goal Invested must be greater than $0!"
-            ermsg = ermsg + msg
+                ermsg = ermsg + msg
             e+=1
         if str.isnumeric(horizon) and float(horizon)<0 :
             if e==0:
                 msg = "Horizon must be greater than $0!"
-            else:
-                msg = ", Horizon Invested must be greater than $0!"
-            ermsg = ermsg + msg
+                ermsg = ermsg + msg
             e+=1
         if str.isnumeric(goal) and str.isnumeric(amount_invest) and float(goal) < float(amount_invest):
             if e==0:
                 msg = "Goal must be higher than Amount Invested"
-            else:
-                msg = ", Goal must be higher than Amount Invested"
-            ermsg = ermsg + msg
+                ermsg = ermsg + msg
             e+=1
 
         if e>0:
