@@ -1,0 +1,2 @@
+api/venv/
+frontend/node_modules/
