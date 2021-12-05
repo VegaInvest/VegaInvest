@@ -100,10 +100,6 @@ def create_portfolio():            # Views form to create portfolio associated w
             e+=1
 
         if e>0:
-             goal=float(goal)
-             horizon=float(horizon)
-             print(goal,amount_invest)
-             print(type(goal))
              return jsonify({'Status': ermsg})
         else:
             amount_invest=float(amount_invest)
