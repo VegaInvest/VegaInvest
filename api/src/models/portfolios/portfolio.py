@@ -177,11 +177,11 @@ class Portfolio(object):
         """
         fig = plt.figure(figsize=(12, 6))
         ax = fig.add_subplot(111)
-        plt.plot(risk_data, ret_data, "g-")
+        #plt.plot(risk_data, ret_data, "g-")
 
         for i in PortfolioConstants.RISK_APP_DICT:
             marker = PortfolioConstants.RISK_APP_DICT.get(i)
-            plt.plot(risk_data[marker], ret_data[marker], "bs")
+           # plt.plot(risk_data[marker], ret_data[marker], "bs")
             if i == "low":
                 y = 0
             else:
@@ -199,21 +199,21 @@ class Portfolio(object):
             ax.annotate(indicator, xy=(
                 risk_data[marker] + 0.02, ret_data[marker] + y))
 
-        plt.plot(risk_data_minVar, ret_data_minVar, "rs")
+        #plt.plot(risk_data_minVar, ret_data_minVar, "rs")
         ax.annotate(
             "minimum Variance",
             xy=(risk_data_minVar - 0.015, risk_data_minVar - 0.00015),
         )
         n = len(PortfolioConstants.TICKERS)
         for i in range(n):
-            plt.plot(std[i], mu[i], "o")
+           # plt.plot(std[i], mu[i], "o")
             ax.annotate(
                 PortfolioConstants.TICKERS[i], xy=(
                     std[i] - 0.0005, mu[i] - 0.001)
             )
-        plt.xlabel("Standard deviation")
-        plt.ylabel("Return")
-        plt.xlim([0, 0.15])
+      #  plt.xlabel("Standard deviation")
+        #plt.ylabel("Return")
+     #   plt.xlim([0, 0.15])
 
         return fig
 
@@ -233,12 +233,12 @@ class Portfolio(object):
         fig = plt.figure(figsize=(12, 6))
         ax = fig.add_subplot(111)
         wts = np.around(np.array(self.weights), 10)
-        plt.pie(
-            wts,
-            labels=self.tickers,
-            explode=[0.01] * len(self.weights),
-            autopct="%1.1f%%",
-        )
+    #    plt.pie(
+    #         wts,
+    #         labels=self.tickers,
+    #         explode=[0.01] * len(self.weights),
+    #         autopct="%1.1f%%",
+    #     )
 
         return fig
 
