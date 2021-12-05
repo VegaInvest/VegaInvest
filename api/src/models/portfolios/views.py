@@ -56,7 +56,10 @@ def create_portfolio():            # Views form to create portfolio associated w
     if request.method == "POST":
         risk_appetite = request.get_json().get('risk_appetite')
         email = request.get_json().get('email')
-        port = Portfolio(email, risk_appetite=risk_appetite)
+        amount_invests=get_json().get('amount_invests')
+        goal=get_json().get('goal')
+        horizon=get_json().get('horizon')
+        port = Portfolio(email, risk_appetite=risk_appetite,amount_invest=amount_invests,goal=goal,horizon=horizon)
         port.save_to_mongo()
         fig = port.runMVO()
         # canvas = FigureCanvas(fig)
