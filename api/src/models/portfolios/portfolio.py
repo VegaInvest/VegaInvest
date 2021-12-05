@@ -13,15 +13,25 @@ plt.style.use("ggplot")
 
 class Portfolio(object):
     # Portfolio class creates portfolio instances for user portfolios using stocks in Stock class
-    #def __init__(self, user_email, risk_appetite, tickers=None, weights=None, _id=None): 
-    def __init__(self, user_email, risk_appetite, amount_invest,goal, horizon, tickers=None, weights=None, _id=None): 
+    # def __init__(self, user_email, risk_appetite, tickers=None, weights=None, _id=None):
+    def __init__(
+        self,
+        user_email,
+        risk_appetite,
+        amount_invest,
+        goal,
+        horizon,
+        tickers=None,
+        weights=None,
+        _id=None,
+    ):
         self.user_email = user_email
         self.risk_appetite = risk_appetite
         self.tickers = PortfolioConstants.TICKERS if tickers is None else tickers
         self.weights = weights
-        self.amount_invest= amount_invest
-        self.goal= goal
-        self.horizon= horizon
+        self.amount_invest = amount_invest
+        self.goal = goal
+        self.horizon = horizon
         self._id = uuid.uuid4().hex if _id is None else _id
 
     def __repr__(self):
@@ -177,11 +187,11 @@ class Portfolio(object):
         """
         fig = plt.figure(figsize=(12, 6))
         ax = fig.add_subplot(111)
-        #plt.plot(risk_data, ret_data, "g-")
+        # plt.plot(risk_data, ret_data, "g-")
 
         for i in PortfolioConstants.RISK_APP_DICT:
             marker = PortfolioConstants.RISK_APP_DICT.get(i)
-           # plt.plot(risk_data[marker], ret_data[marker], "bs")
+            # plt.plot(risk_data[marker], ret_data[marker], "bs")
             if i == "low":
                 y = 0
             else:
@@ -196,24 +206,22 @@ class Portfolio(object):
                 i + " ($\gamma = %.2f$)" % gamma_vals[marker],
                 xy=(risk_data[marker] + 0.0015, ret_data[marker] + y),
             )
-            ax.annotate(indicator, xy=(
-                risk_data[marker] + 0.02, ret_data[marker] + y))
+            ax.annotate(indicator, xy=(risk_data[marker] + 0.02, ret_data[marker] + y))
 
-        #plt.plot(risk_data_minVar, ret_data_minVar, "rs")
+        # plt.plot(risk_data_minVar, ret_data_minVar, "rs")
         ax.annotate(
             "minimum Variance",
             xy=(risk_data_minVar - 0.015, risk_data_minVar - 0.00015),
         )
         n = len(PortfolioConstants.TICKERS)
         for i in range(n):
-           # plt.plot(std[i], mu[i], "o")
+            # plt.plot(std[i], mu[i], "o")
             ax.annotate(
-                PortfolioConstants.TICKERS[i], xy=(
-                    std[i] - 0.0005, mu[i] - 0.001)
+                PortfolioConstants.TICKERS[i], xy=(std[i] - 0.0005, mu[i] - 0.001)
             )
-      #  plt.xlabel("Standard deviation")
-        #plt.ylabel("Return")
-     #   plt.xlim([0, 0.15])
+        #  plt.xlabel("Standard deviation")
+        # plt.ylabel("Return")
+        #   plt.xlim([0, 0.15])
 
         return fig
 
@@ -233,18 +241,17 @@ class Portfolio(object):
         fig = plt.figure(figsize=(12, 6))
         ax = fig.add_subplot(111)
         wts = np.around(np.array(self.weights), 10)
-    #    plt.pie(
-    #         wts,
-    #         labels=self.tickers,
-    #         explode=[0.01] * len(self.weights),
-    #         autopct="%1.1f%%",
-    #     )
+        #    plt.pie(
+        #         wts,
+        #         labels=self.tickers,
+        #         explode=[0.01] * len(self.weights),
+        #         autopct="%1.1f%%",
+        #     )
 
         return fig
 
     def save_to_mongo(self):
-        Database.update(PortfolioConstants.COLLECTION,
-                        {"_id": self._id}, self.json())
+        Database.update(PortfolioConstants.COLLECTION, {"_id": self._id}, self.json())
 
     def json(self):  # Creates JSON representation of portfolio instance
         return {
@@ -254,13 +261,14 @@ class Portfolio(object):
             "tickers": self.tickers,
             "weights": self.weights,
             "amount_invest": self.amount_invest,
-            "goal" : self.goal,
-            "horizon" : self.horizon
+            "goal": self.goal,
+            "horizon": self.horizon,
         }
 
     def return_PortfolioID(self, email):
-        port_data = Database.find_one(PortfolioConstants.COLLECTION,
-                                      {'user_email': email})
+        port_data = Database.find_one(
+            PortfolioConstants.COLLECTION, {"user_email": email}
+        )
         Portfolio_ID = port_data["_id"]
         return Portfolio_ID
 

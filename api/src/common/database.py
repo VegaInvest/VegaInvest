@@ -17,10 +17,6 @@ class Database(object):
         Database.DATABASE[collection].insert(data)
 
     @staticmethod
-    def getCollectionList():
-        return Database.DATABASE.list_collection_names()
-
-    @staticmethod
     def insert_many(
         collection, data
     ):  # Inserts new record in db.collection (data must be in JSON)
@@ -31,6 +27,10 @@ class Database(object):
         collection, query
     ):  # Returns all records from db.collection matching query
         return Database.DATABASE[collection].find(query)  # query must be in JSON
+
+    @staticmethod
+    def getCollectionList():
+        return Database.DATABASE.list_collection_names()
 
     @staticmethod
     def find_one(
@@ -48,3 +48,11 @@ class Database(object):
     @staticmethod
     def remove(collection, query):  # Deletes record from db.collecion
         Database.DATABASE[collection].remove(query)
+
+    @staticmethod
+    def findmax(collection, field):  # Deletes record from db.collecion
+        return Database.DATABASE[collection].find().sort(field, -1).limit(1)
+
+    @staticmethod
+    def drop(collection):  # Deletes record from db.collecion
+        return Database.DATABASE[collection].drop()

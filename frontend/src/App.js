@@ -63,9 +63,9 @@ var fullurl= 'http://127.0.0.1:5000' + end
 {/* get portfolio ID*/}
 function Get_Portfolio_ID(query_email){
   const [getMessage, setGetMessage] = useState({})
-  var full_url = 'http://127.0.0.1:5000/portfolios/pushPortfolioid/' + query_email
+  var full_url = 'http://127.0.0.1:5000/portfolios//pushRisk/' + query_email
   useEffect(()=>{
-    axios.get(full_url).then(response => {
+      axios.get(full_url).then(response => {
       console.log("SUCCESS", response)
       setGetMessage(response)
     }).catch(error => {
