@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, request
+from flask import Flask, render_template, send_from_directory, request,jsonify
 from src.common.database import Database
 from flask_restful import Api, Resource, reqparse
 from flask_cors import CORS  # comment this on deployment
@@ -20,7 +20,7 @@ def init_db():
 # Render home page
 @app.route("/")
 def home():
-    return render_template("home.jinja2")
+    return jsonify({"MSG":"yo"})
 
 
 # @app.route("/yo", methods=["GET", "POST"])
