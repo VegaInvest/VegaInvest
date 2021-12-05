@@ -56,18 +56,82 @@ def create_portfolio():            # Views form to create portfolio associated w
     if request.method == "POST":
         risk_appetite = request.get_json().get('risk_appetite')
         email = request.get_json().get('email')
+        ermsg = ""
+        e=0
+        c=0
         amount_invest=request.get_json().get('amount_invest')
         goal=request.get_json().get('goal')
         horizon=request.get_json().get('horizon')
-        port = Portfolio(email, risk_appetite=risk_appetite,amount_invest=amount_invest,goal=goal,horizon=horizon)
-        port.save_to_mongo()
-        fig = port.runMVO()
-        # canvas = FigureCanvas(fig)
-        # img = BytesIO()
-        # fig.savefig(img)
-        # img.seek(0)
-        # plot_data = base64.b64encode(img.read()).decode()
-        return jsonify({'Status': 'portfolio created!'})
+        
+        if not str.isnumeric(amount_invest):
+            if e==0:
+                msg = "Amount Invested is not a valid type"
+            else:
+                msg = ", Amount Invested is not a valid type"
+            ermsg = ermsg + msg
+            e+=1
+        if not str.isnumeric(goal):
+            if e==0:
+                msg = "Goal is not a valid type"
+            else:
+                msg = ", Goal Invested is not a valid type"
+            ermsg = ermsg + msg
+            e+=1
+        if not str.isnumeric(horizon):
+            if e==0:
+                msg = "Horizon is not a valid type"
+            else:
+                msg = ", Horizon Invested is not a valid type"
+            ermsg = ermsg + msg
+            e+=1
+        if str.isnumeric(amount_invest) and float(amount_invest)<0 :
+            if e==0:
+                msg = "Amount Invested must be greater than $0!"
+            else:
+                msg = ", Amount Invested must be greater than $0!"
+            ermsg = ermsg + msg
+            e+=1
+        if str.isnumeric(goal) and float(goal)<0 :
+            if e==0:
+                msg = "Goal must be greater than $0!"
+            else:
+                msg = ", Goal Invested must be greater than $0!"
+            ermsg = ermsg + msg
+            e+=1
+        if str.isnumeric(horizon) and float(horizon)<0 :
+            if e==0:
+                msg = "Horizon must be greater than $0!"
+            else:
+                msg = ", Horizon Invested must be greater than $0!"
+            ermsg = ermsg + msg
+            e+=1
+        if str.isnumeric(goal) and str.isnumeric(amount_invest) and float(goal) < float(amount_invest):
+            if e==0:
+                msg = "Goal must be higher than Amount Invested"
+            else:
+                msg = ", Goal must be higher than Amount Invested"
+            ermsg = ermsg + msg
+            e+=1
+
+        if e>0:
+             goal=float(goal)
+             horizon=float(horizon)
+             print(goal,amount_invest)
+             print(type(goal))
+             return jsonify({'Status': ermsg})
+        else:
+            amount_invest=float(amount_invest)
+            goal=float(goal)
+            horizon=float(horizon)
+            port = Portfolio(email, risk_appetite=risk_appetite,amount_invest=amount_invest,goal=goal,horizon=horizon)
+            port.save_to_mongo()
+            fig = port.runMVO()
+            # canvas = FigureCanvas(fig)
+            # img = BytesIO()
+            # fig.savefig(img)
+            # img.seek(0)
+            # plot_data = base64.b64encode(img.read()).decode()
+            return jsonify({'Status': 'portfolio created!'})
     return jsonify({'Status': 'error use POST request'})
 
 
