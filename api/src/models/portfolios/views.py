@@ -28,12 +28,12 @@ portfolio_blueprint = Blueprint("portfolios", __name__)
 @user_decorators.requires_login
 def get_portfolio_page(portfolio_id):  # Renders unique portfolio page
     port = Portfolio.get_by_id(portfolio_id)
-    fig = port.plot_portfolio()
-    canvas = FigureCanvas(fig)
-    img = BytesIO()
-    fig.savefig(img)
-    img.seek(0)
-    plot_data = base64.b64encode(img.read()).decode()
+    # fig = port.plot_portfolio()
+    # canvas = FigureCanvas(fig)
+    # img = BytesIO()
+    # fig.savefig(img)
+    # img.seek(0)
+    # plot_data = base64.b64encode(img.read()).decode()
 
     return render_template(
         "/portfolios/portfolio.jinja2", portfolio=port, plot_url=plot_data
@@ -129,7 +129,7 @@ def create_portfolio():  # Views form to create portfolio associated with active
                 horizon=horizon,
             )
             port.save_to_mongo()
-            fig = port.runMVO()
+            port.runMVO()
             # canvas = FigureCanvas(fig)
             # img = BytesIO()
             # fig.savefig(img)
@@ -156,8 +156,8 @@ def pushportid(email):
 
 # @user_decorators.requires_login
 # Views form to create portfolio associated with active/ loggedin user
-@portfolio_blueprint.route("/pushRisk/<string:email>", methods=["GET", "POST"])
-def pushportrisk(email):
+@portfolio_blueprint.route("/pushParams/<string:email>", methods=["GET", "POST"])
+def pushParams(email):
     email = str(email)
     if request.method == "GET":
         port_data = Database.find_one(
@@ -165,32 +165,17 @@ def pushportrisk(email):
         )
         risk_appetite = port_data["risk_appetite"]
         risk_appetite = str(risk_appetite)
-        print(risk_appetite)
-        return jsonify({"Status": "Success", "risk_appetite": risk_appetite})
-    return jsonify({"Status": "error use POST request"})
-
-
-@portfolio_blueprint.route("/pushHorizon/<string:email>", methods=["GET", "POST"])
-def pushporthorizon(email):
-    email = str(email)
-    if request.method == "GET":
-        port_data = Database.find_one(
-            PortfolioConstants.COLLECTION, {"user_email": email}
-        )
         horizon = port_data["horizon"]
         horizon = str(horizon)
-        return jsonify({"Status": "Success", "horizon": horizon})
-    return jsonify({"Status": "error use POST request"})
-
-
-@portfolio_blueprint.route("/pushGoal/<string:email>", methods=["GET", "POST"])
-def pushportgoal(email):
-    email = str(email)
-    if request.method == "GET":
-        port_data = Database.find_one(
-            PortfolioConstants.COLLECTION, {"user_email": email}
-        )
         goal = port_data["goal"]
         goal = str(goal)
-        return jsonify({"Status": "Success", "goal": goal})
+        print(risk_appetite)
+        return jsonify(
+            {
+                "Status": "Success",
+                "risk_appetite": risk_appetite,
+                "horizon": horizon,
+                "goal": goal,
+            }
+        )
     return jsonify({"Status": "error use POST request"})
