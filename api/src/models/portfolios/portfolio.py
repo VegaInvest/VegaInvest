@@ -261,7 +261,7 @@ class Portfolio(object):
     def robust_mu(mu, Q, alpha, forecast_window):
         robust_mu = []
         for i in range(forecast_window):
-            robust_mu = robust_mu + [mu[i] - alpha * np.diag(Q[i])]
+            robust_mu = robust_mu + [mu[i] - alpha * (np.diag(Q[i])**.5)]
         robust_mu = np.array(robust_mu)
         return robust_mu
 
@@ -385,7 +385,7 @@ class Portfolio(object):
                 weights = weights + [
                     np.array(
                         Portfolio.multi_sharpe(
-                            rbt_mu, Q, forecast_window, gamma_trans, gamma_risk
+                            mu, Q, forecast_window, gamma_trans, gamma_risk
                         )
                     )
                 ]
@@ -567,7 +567,7 @@ class Portfolio(object):
         return beebee
 
     def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
-        rf = 0
+        rf = 0.0025 # fed funds rate upper bound to add robustness to model
         rf_hat = np.ones(len(mu[0])) * rf
         one_vec = np.ones(len(mu[0]))
         w = np.full(len(mu[0]), 0)
