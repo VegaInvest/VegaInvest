@@ -165,7 +165,7 @@ class Stock(object):
                     for ticker in av_data.columns:
                         for date in av_data.index:
                             data.loc[date, ticker] = av_data.loc[date, ticker]
-                print(count, " 1st loop ", maxdate, ":", mindate, " ticker:", ticker)
+            # print(count, " 1st loop ", maxdate, ":", mindate, " ticker:", ticker)
             elif mindate != init and NA:
                 if count % 5 == 0 and count != 0:
                     time.sleep(63)
@@ -175,7 +175,7 @@ class Stock(object):
                     for ticker in av_data.columns:
                         for date in av_data.index:
                             data.loc[date, ticker] = av_data.loc[date, ticker]
-                print(count, " 2nd loop ", maxdate, ":", mindate), " ticker:", ticker
+                # print(count, " 2nd loop ", maxdate, ":", mindate), " ticker:", ticker
         #         print("Ticker:",ticker,mindate,":",maxdate)
 
         #    print(maxdate,mindate)
@@ -185,22 +185,32 @@ class Stock(object):
         data.rename(columns={"index": "Ticker"}, inplace=True)
         data.columns = data.columns.astype(str)
         for item in data.to_dict("record"):
-            Database.update(
-                "rawdata", {"Date": data["Date"]}, {"$set": item}, upsert=True
-            )
+            Database.update("rawdata", {"Date": item["Date"]}, {"$set": item})
 
     def get_from_db(startdate, enddate):
         # Stock.push_rawData(startdate,enddate)
         # TO pull data from mongodb
 
-        results = Database.find("rawdata", {})
+        results = Database.find(
+            "rawdata", {"Date": {"$gte": startdate, "$lte": enddate}}
+        )
         # print(list(blah)[:])
         datab = pd.DataFrame.from_dict(
             results, orient="columns", dtype=None, columns=None
         )
+        print(datab)
         datab.drop(columns="_id", inplace=True)
         datab.set_index("Date", inplace=True)
         return datab
+
+    def Import_stocks_params(startdate, tickers):
+        end_date = datetime.datetime.today()
+        stock_ret = Stock.get_from_db(start_date, end_date)[tickers]
+        stock_ret = (
+            stock_ret / stock_ret.shift(1) - 1
+        )  # convert prices to daily returns
+        stock_ret = stock_ret[1:]
+        return stock_ret
 
     @classmethod
     def get_Params(cls, ticker, start_date, end_date):
