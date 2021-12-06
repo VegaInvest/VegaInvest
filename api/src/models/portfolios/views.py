@@ -201,7 +201,8 @@ def pushParams(email):
         sharpe=np.round(x[1][3],3)
         returns=np.round(x[1][1],3)
         vol=np.round(x[1][2],3)
-        print(np.around(x[1][-1], 3))
+        portval=np.around(x[1][-1]*amount_invested, 3)
+
         #X[1][1] is annualized returns
         #X[1][2] is vol
         #X[1][3] is sharpe
@@ -218,7 +219,8 @@ def pushParams(email):
                 'sharpe' : sharpe,
                 'returns' : returns,
                 'vol' : vol,
-                'time_difference' : time_difference
+                'time_difference' : time_difference,
+                'portval' : portval
             }
         )
     return jsonify({"Status": "error use POST request"})
