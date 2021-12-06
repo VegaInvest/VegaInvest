@@ -1,3 +1,4 @@
+from pandas.core.indexes import datetimes
 from src.models.portfolios.constants import START_DATE
 from src.models.stocks.stock import Stock
 import src.models.portfolios.constants as PortfolioConstants
@@ -10,7 +11,6 @@ import pandas as pd
 import matplotlib
 import datetime
 import uuid
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from dateutil.relativedelta import relativedelta
@@ -136,7 +136,7 @@ class Portfolio(object):
     #     return mu, cov
     def multi_period_backtesting(tickers, forecast_window, lookback, estimation_model, alpha, gamma_trans, gamma_risk, date, end, risk_appetite):
         #
-        date = max(PortfolioConstants.START_DATE,date)
+        date = max(Portfolio.to_integer(PortfolioConstants.START_DATE),date)
         #print("Start Date: ", date)
 
         data = Portfolio.Import_data_inputs(date, tickers)
@@ -144,12 +144,12 @@ class Portfolio(object):
         excess_ret = data[0].resample('M').agg(lambda x: (x + 1).prod() - 1)
         factor_ret = data[1].resample('M').agg(lambda x: (x + 1).prod() - 1)
         raw_rets = data[2].resample('M').agg(lambda x: (x + 1).prod() - 1)
-
+        
         weights = []
 
         height = (len(excess_ret)-lookback)//forecast_window
         n_stocks = len(tickers)
-
+        dates = excess_ret.index[-lookback:]
         for i in range(height):
             
             params = Portfolio.Param_forecast(np.array(excess_ret[i*forecast_window:i*forecast_window+lookback]), np.array(factor_ret[-len(excess_ret):])[i*forecast_window:i*forecast_window+lookback], lookback=7, forecast=forecast_window, model=estimation_model)
@@ -171,18 +171,20 @@ class Portfolio(object):
         raw_rets = np.array(raw_rets)[-len(weights):]
         bench = np.array(factor_ret.iloc[:,0])[-len(weights):]
         rfr = np.array(factor_ret.iloc[:,5])[-len(weights):]
+        dates=(excess_ret.index.to_numpy())[-len(weights)-1:]
 
         if end == 0:
-            results = Portfolio.single_period_portfolio_backtest(raw_rets, weights, bench, rfr)
+            results = Portfolio.single_period_portfolio_backtest(raw_rets, weights, bench, rfr, dates)
 
         else:
-            results = Portfolio.single_period_portfolio_backtest(raw_rets[:end], weights[:end], bench[:end], rfr[:end])
+            results = Portfolio.single_period_portfolio_backtest(raw_rets[:end], weights[:end], bench[:end], rfr[:end], dates[:end+1])
         print('\n')
         return weights, results
         #X[1][1] is annualized returns
         #X[1][2] is vol
         #X[1][3] is sharpe
         #X[1][-1] is vector of Portfolio value
+        #X[1][-2] is time vector
         #date in yyyymmdd format, start at 7 periods (months) before required start date
 
     def Param_forecast(input_stock_rets, input_factor_rets, lookback, forecast, model):
@@ -331,102 +333,10 @@ class Portfolio(object):
 
         return weights
 
-    def multi_period_backtesting(
-        tickers,
-        forecast_window,
-        lookback,
-        estimation_model,
-        alpha,
-        gamma_trans,
-        gamma_risk,
-        date,
-        end,
-        risk_appetite,
-    ):
+    
 
-        date = max(20160914, date)
-        print("Start Date: ", date)
 
-        # if opt_model == 1:
-        #     print("Multi Period Sharpe Ratio Optimization")
-        # elif opt_model == 2:
-        #     print("Multi Period Risk Parity Optimization")
-        # else:
-        #     print("Multi Period MVO")
-
-        data = Portfolio.Import_data_inputs(date, tickers)
-
-        excess_ret = data[0].resample("M").agg(lambda x: (x + 1).prod() - 1)
-        factor_ret = data[1].resample("M").agg(lambda x: (x + 1).prod() - 1)
-        raw_rets = data[2].resample("M").agg(lambda x: (x + 1).prod() - 1)
-
-        weights = []
-
-        height = (len(excess_ret) - lookback) // forecast_window
-        n_stocks = len(tickers)
-
-        for i in range(height):
-
-            params = Portfolio.Param_forecast(
-                np.array(
-                    excess_ret[i * forecast_window : i * forecast_window + lookback]
-                ),
-                np.array(factor_ret[-len(excess_ret) :])[
-                    i * forecast_window : i * forecast_window + lookback
-                ],
-                lookback=7,
-                forecast=forecast_window,
-                model=estimation_model,
-            )
-            mu = params[0].transpose()
-            Q = params[1]
-            rbt_mu = Portfolio.robust_mu(mu, Q, alpha, forecast_window)
-            if risk_appetite == "high":
-                weights = weights + [
-                    np.array(
-                        Portfolio.multi_sharpe(
-                            mu, Q, forecast_window, gamma_trans, gamma_risk
-                        )
-                    )
-                ]
-            elif risk_appetite == "low":
-                weights = weights + [
-                    np.array(
-                        Portfolio.multi_rp(
-                            rbt_mu, Q, forecast_window, gamma_trans, gamma_risk
-                        )
-                    )
-                ]
-            else:
-                weights = weights + [
-                    np.array(
-                        Portfolio.multi_period_mvo(
-                            rbt_mu, Q, forecast_window, gamma_trans, gamma_risk
-                        )
-                    )
-                ]
-
-        weights = np.array(weights).reshape(height * forecast_window, len(tickers))
-
-        weights = np.array(weights)
-
-        raw_rets = np.array(raw_rets)[-len(weights) :]
-        bench = np.array(factor_ret.iloc[:, 0])[-len(weights) :]
-        rfr = np.array(factor_ret.iloc[:, 5])[-len(weights) :]
-
-        if end == 0:
-            results = Portfolio.single_period_portfolio_backtest(
-                raw_rets, weights, bench, rfr
-            )
-
-        else:
-            results = Portfolio.single_period_portfolio_backtest(
-                raw_rets[:end], weights[:end], bench[:end], rfr[:end]
-            )
-        print("\n")
-        return weights, results
-
-    def single_period_portfolio_backtest(rets, weights, benchmark, rfr):
+    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates):
 
         portf_ret = np.diag(np.matmul(rets, weights.transpose()))
         benchmark = benchmark + rfr
@@ -469,7 +379,7 @@ class Portfolio(object):
         #     "\n",
         # )
 
-        t = np.arange(start=0, stop=len(portf_ret) + 1, step=1, dtype=None)
+        t = dates
 
         portf_ret = pd.DataFrame(portf_ret + 1).cumprod()
         benchmark = pd.DataFrame(
@@ -490,7 +400,7 @@ class Portfolio(object):
             Sharpe,
             Information,
             Sortino,
-            drawdown.max()[0], portf_ret
+            drawdown.max()[0], t, portf_ret
         )
 
     def multi_period_mvo(mu, cov, forecast, gamma_trans, gamma_risk):
