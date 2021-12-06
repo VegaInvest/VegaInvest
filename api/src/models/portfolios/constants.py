@@ -34,5 +34,5 @@ RISK_LABELS = ["high", "medium", "low"]  # Different portfolio risk levels
 RISK_APP_DICT = dict(
     zip(RISK_LABELS, RISK_PROFILE_INDECES)
 )  # Dict tying gamma values to risk levels
-START_DATE = datetime.datetime(2012, 1, 1)  # Start date for data collection
+START_DATE = datetime.datetime(2016, 9, 14)  # Start date for data collection
 END_DATE = datetime.datetime.today()  # End date for data collection
