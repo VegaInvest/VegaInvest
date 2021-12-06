@@ -178,7 +178,7 @@ def pushportid(email):
 # @user_decorators.requires_login
 # Views form to create portfolio associated with active/ loggedin user
 @portfolio_blueprint.route("/pushWeights/<string:email>", methods=["GET", "POST"])
-def pushParams(email):
+def pushWeights(email):
     email = str(email)
     if request.method == "GET":
         port_data = Database.find_one(
@@ -203,7 +203,7 @@ def pushParams(email):
         weights=x[0][-1]
         weights=np.around(weights, 3)
         weights=weights.tolist()
-
+        print(weights*100)
         #time_index=time_index.tolist()
         #X[1][1] is annualized returns
         #X[1][2] is vol
