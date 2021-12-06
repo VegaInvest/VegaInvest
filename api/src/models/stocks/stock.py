@@ -187,25 +187,27 @@ class Stock(object):
         for item in data.to_dict("record"):
             Database.update("rawdata", {"Date": item["Date"]}, {"$set": item})
 
-    def get_from_db(startdate, enddate):
+    def get_from_db():
         # Stock.push_rawData(startdate,enddate)
         # TO pull data from mongodb
 
-        results = Database.find(
-            "rawdata", {"Date": {"$gte": startdate, "$lte": enddate}}
-        )
+        results = Database.find("rawdata", {})
         # print(list(blah)[:])
         datab = pd.DataFrame.from_dict(
             results, orient="columns", dtype=None, columns=None
         )
-        print(datab)
         datab.drop(columns="_id", inplace=True)
         datab.set_index("Date", inplace=True)
         return datab
 
     def Import_stocks_params(startdate, tickers):
+        startdate = startdate - 1
+        startdate = (
+            str(startdate)[4:6] + "/" + str(startdate)[6:8] + "/" + str(startdate)[0:4]
+        )
+        startdate = datetime.datetime.strptime(startdate, "%m/%d/%Y")
         end_date = datetime.datetime.today()
-        stock_ret = Stock.get_from_db(start_date, end_date)[tickers]
+        stock_ret = Stock.get_from_db()[tickers][startdate:end_date]
         stock_ret = (
             stock_ret / stock_ret.shift(1) - 1
         )  # convert prices to daily returns
@@ -225,7 +227,7 @@ class Stock(object):
 
         error = False
         # try:
-        data = Stock.get_from_db(start_date, end_date).iloc[::-1]
+        data = Stock.get_from_db().iloc[::-1][end_date:start_date]
         data = data[[ticker]]
         data.columns = [ticker]
 

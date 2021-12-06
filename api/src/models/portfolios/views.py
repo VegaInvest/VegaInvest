@@ -68,6 +68,7 @@ def create_portfolio():  # Views form to create portfolio associated with active
     if request.method == "POST":
         risk_appetite = request.get_json().get("risk_appetite")
         email = request.get_json().get("email")
+        print("yo", email)
         ermsg = ""
         e = 0
         c = 0
