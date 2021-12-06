@@ -13,6 +13,7 @@ import uuid
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from dateutil.relativedelta import relativedelta
 
 plt.style.use("ggplot")
 import cvxpy as cvx
@@ -136,7 +137,7 @@ class Portfolio(object):
     def multi_period_backtesting(tickers, forecast_window, lookback, estimation_model, alpha, gamma_trans, gamma_risk, date, end, risk_appetite):
         #
         date = max(PortfolioConstants.START_DATE,date)
-        print("Start Date: ", date)
+        #print("Start Date: ", date)
 
         data = Portfolio.Import_data_inputs(date, tickers)
 

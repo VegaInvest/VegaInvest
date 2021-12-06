@@ -8,7 +8,7 @@ from flask import (
     jsonify,
 )
 from pandas.core.tools.datetimes import to_datetime
-
+from dateutil.relativedelta import relativedelta
 from src.models.users.user import User
 import src.models.users.errors as UserErrors
 import src.models.users.decorators as user_decorators
@@ -193,8 +193,7 @@ def pushParams(email):
         amount_invested = port_data["amount_invest"]
         amount_invested = float(amount_invested)
         x = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000),  alpha=.1, gamma_trans=10, gamma_risk=1000, date=Portfolio.to_integer(PortfolioConstants.START_DATE), end=36, risk_appetite=risk_appetite)
-        time_difference = datetime.relativedelta(PortfolioConstants.END_DATE, PortfolioConstants.START_DATE).years
-        difference_in_years = time_difference.years
+        time_difference = int(relativedelta(PortfolioConstants.END_DATE, PortfolioConstants.START_DATE).years)
         print(x[1][3], "Sharpe")
         print(x[1][1], "Annualized Returns")
         print(x[1][2], "Vol")
