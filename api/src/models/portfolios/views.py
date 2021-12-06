@@ -193,7 +193,7 @@ def pushParams(email):
         amount_invested = port_data["amount_invest"]
         amount_invested = float(amount_invested)
         x = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000),  alpha=.1, gamma_trans=10, gamma_risk=1000, date=Portfolio.to_integer(PortfolioConstants.START_DATE), end=36, risk_appetite=risk_appetite)
-        time_difference = datetime.datetime.relativedelta(PortfolioConstants.END_DATE, PortfolioConstants.START_DATE).years
+        time_difference = datetime.relativedelta(PortfolioConstants.END_DATE, PortfolioConstants.START_DATE).years
         difference_in_years = time_difference.years
         print(x[1][3], "Sharpe")
         print(x[1][1], "Annualized Returns")
@@ -202,7 +202,7 @@ def pushParams(email):
         sharpe=np.round(x[1][3],3)
         returns=np.round(x[1][1],3)
         vol=np.round(x[1][2],3)
-
+        print(np.around(x[1][-1], 3))
         #X[1][1] is annualized returns
         #X[1][2] is vol
         #X[1][3] is sharpe
