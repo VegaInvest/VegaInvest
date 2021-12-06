@@ -60,7 +60,7 @@ class Portfolio(object):
         self.amount_invest = amount_invest
         self.goal = goal
         self.horizon = horizon
-        self.start = datetime.datetime.today()
+        self.start = PortfolioConstants.END_DATE #datetime.datetime.today()
         self._id = uuid.uuid4().hex if _id is None else _id
 
     def __repr__(self):
@@ -133,6 +133,56 @@ class Portfolio(object):
     #     cov = cov.values
     #     np.fill_diagonal(cov, 0.1)
     #     return mu, cov
+    def multi_period_backtesting(tickers, forecast_window, lookback, estimation_model, alpha, gamma_trans, gamma_risk, date, end, risk_appetite):
+        #
+        date = max(PortfolioConstants.START_DATE,date)
+        print("Start Date: ", date)
+
+        data = Portfolio.Import_data_inputs(date, tickers)
+
+        excess_ret = data[0].resample('M').agg(lambda x: (x + 1).prod() - 1)
+        factor_ret = data[1].resample('M').agg(lambda x: (x + 1).prod() - 1)
+        raw_rets = data[2].resample('M').agg(lambda x: (x + 1).prod() - 1)
+
+        weights = []
+
+        height = (len(excess_ret)-lookback)//forecast_window
+        n_stocks = len(tickers)
+
+        for i in range(height):
+            
+            params = Portfolio.Param_forecast(np.array(excess_ret[i*forecast_window:i*forecast_window+lookback]), np.array(factor_ret[-len(excess_ret):])[i*forecast_window:i*forecast_window+lookback], lookback=7, forecast=forecast_window, model=estimation_model)
+            mu = params[0].transpose()
+            Q = params[1]
+            rbt_mu = Portfolio.robust_mu(mu, Q, alpha, forecast_window)
+            if risk_appetite == 1:
+                weights = weights + [np.array(Portfolio.multi_sharpe(mu, Q, forecast_window, gamma_trans, gamma_risk))]
+            elif risk_appetite == 2:
+                weights = weights + [np.array(Portfolio.multi_rp(rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
+            else:
+                weights = weights + [np.array(Portfolio.multi_period_mvo(rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
+
+
+        weights = np.array(weights).reshape(height*forecast_window,len(tickers))
+
+        weights = np.array(weights)
+        
+        raw_rets = np.array(raw_rets)[-len(weights):]
+        bench = np.array(factor_ret.iloc[:,0])[-len(weights):]
+        rfr = np.array(factor_ret.iloc[:,5])[-len(weights):]
+
+        if end == 0:
+            results = Portfolio.single_period_portfolio_backtest(raw_rets, weights, bench, rfr)
+
+        else:
+            results = Portfolio.single_period_portfolio_backtest(raw_rets[:end], weights[:end], bench[:end], rfr[:end])
+        print('\n')
+        return weights, results
+        #X[1][1] is annualized returns
+        #X[1][2] is vol
+        #X[1][3] is sharpe
+        #X[1][-1] is vector of Portfolio value
+        #date in yyyymmdd format, start at 7 periods (months) before required start date
 
     def Param_forecast(input_stock_rets, input_factor_rets, lookback, forecast, model):
         if forecast > lookback:
@@ -290,20 +340,20 @@ class Portfolio(object):
         gamma_risk,
         date,
         end,
-        opt_model,
+        risk_appetite,
     ):
 
         date = max(20160914, date)
         print("Start Date: ", date)
 
-        if opt_model == 1:
-            print("Multi Period Sharpe Ratio Optimization")
-        elif opt_model == 2:
-            print("Multi Period Risk Parity Optimization")
-        else:
-            print("Multi Period MVO")
+        # if opt_model == 1:
+        #     print("Multi Period Sharpe Ratio Optimization")
+        # elif opt_model == 2:
+        #     print("Multi Period Risk Parity Optimization")
+        # else:
+        #     print("Multi Period MVO")
 
-        data = Import_data_inputs(date, tickers)
+        data = Portfolio.Import_data_inputs(date, tickers)
 
         excess_ret = data[0].resample("M").agg(lambda x: (x + 1).prod() - 1)
         factor_ret = data[1].resample("M").agg(lambda x: (x + 1).prod() - 1)
@@ -330,7 +380,7 @@ class Portfolio(object):
             mu = params[0].transpose()
             Q = params[1]
             rbt_mu = Portfolio.robust_mu(mu, Q, alpha, forecast_window)
-            if opt_model == 1:
+            if risk_appetite == "high":
                 weights = weights + [
                     np.array(
                         Portfolio.multi_sharpe(
@@ -338,7 +388,7 @@ class Portfolio(object):
                         )
                     )
                 ]
-            elif opt_model == 2:
+            elif risk_appetite == "low":
                 weights = weights + [
                     np.array(
                         Portfolio.multi_rp(
@@ -381,8 +431,8 @@ class Portfolio(object):
         benchmark = benchmark + rfr
 
         Annual = (gmean(portf_ret - rfr + 1)) ** 12 - 1
-        Vol = np.std(portf_ret) * 12 ** 0.5
-        Sharpe = (gmean(portf_ret - rfr + 1) - 1) / np.std(portf_ret - rfr)
+        Vol = np.std(portf_ret) * (12 ** 0.5)
+        Sharpe = (gmean(portf_ret - rfr + 1)**12 - 1) / (np.std(portf_ret - rfr)*(12**0.5))
         Information = (gmean((portf_ret - benchmark) + 1) - 1) / np.std(
             portf_ret - benchmark
         )
@@ -392,31 +442,31 @@ class Portfolio(object):
         cum_returns = (1 + pd.DataFrame(portf_ret)).cumprod()
         drawdown = 1 - cum_returns.div(cum_returns.cummax())
 
-        print(
-            "\n",
-            "Avg Annual Returns: ",
-            Annual,
-            "\n",
-            "Avg Annual Volatility: ",
-            Vol,
-            "\n",
-            "Sharpe Ratio: ",
-            Sharpe,
-            "\n",
-            "Information Ratio: ",
-            Information,
-            "\n",
-            "Sortino Ratio: ",
-            Sortino,
-            "\n",
-            "Benchmark Beta: ",
-            Beta,
-            "\n",
-            "Max Drawdown: ",
-            drawdown.max()[0],
-            "\n",
-            "\n",
-        )
+        # print(
+        #     "\n",
+        #     "Avg Annual Returns: ",
+        #     Annual,
+        #     "\n",
+        #     "Avg Annual Volatility: ",
+        #     Vol,
+        #     "\n",
+        #     "Sharpe Ratio: ",
+        #     Sharpe,
+        #     "\n",
+        #     "Information Ratio: ",
+        #     Information,
+        #     "\n",
+        #     "Sortino Ratio: ",
+        #     Sortino,
+        #     "\n",
+        #     "Benchmark Beta: ",
+        #     Beta,
+        #     "\n",
+        #     "Max Drawdown: ",
+        #     drawdown.max()[0],
+        #     "\n",
+        #     "\n",
+        # )
 
         t = np.arange(start=0, stop=len(portf_ret) + 1, step=1, dtype=None)
 
@@ -430,7 +480,7 @@ class Portfolio(object):
 
         plt.plot(t, portf_ret, "g-", t, benchmark, "--")
         plt.show()
-        print("Green - Portfolio Returns")
+        #print("Green - Portfolio Returns")
 
         return (
             portf_ret[-1],
@@ -439,7 +489,7 @@ class Portfolio(object):
             Sharpe,
             Information,
             Sortino,
-            drawdown.max()[0],
+            drawdown.max()[0], portf_ret
         )
 
     def multi_period_mvo(mu, cov, forecast, gamma_trans, gamma_risk):
@@ -700,7 +750,7 @@ class Portfolio(object):
             str(startdate)[4:6] + "/" + str(startdate)[6:8] + "/" + str(startdate)[0:4]
         )
         startdate = datetime.datetime.strptime(startdate, "%m/%d/%Y")
-        end_date = datetime.datetime.today()
+        end_date = PortfolioConstants.END_DATE #datetime.datetime.today()
         stock_ret = Stock.get_from_db()[tickers][startdate:end_date]
         stock_ret = (
             stock_ret / stock_ret.shift(1) - 1

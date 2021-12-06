@@ -7,6 +7,7 @@ from flask import (
     render_template,
     jsonify,
 )
+from pandas.core.tools.datetimes import to_datetime
 
 from src.models.users.user import User
 import src.models.users.errors as UserErrors
@@ -14,7 +15,7 @@ import src.models.users.decorators as user_decorators
 from src.common.database import Database
 from src.models.portfolios.portfolio import Portfolio
 import src.models.portfolios.constants as PortfolioConstants
-
+import datetime
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from io import BytesIO
 import urllib
@@ -175,6 +176,7 @@ def pushportid(email):
 
 # @user_decorators.requires_login
 # Views form to create portfolio associated with active/ loggedin user
+
 @portfolio_blueprint.route("/pushParams/<string:email>", methods=["GET", "POST"])
 def pushParams(email):
     email = str(email)
@@ -190,14 +192,34 @@ def pushParams(email):
         goal = float(goal)
         amount_invested = port_data["amount_invest"]
         amount_invested = float(amount_invested)
-        print(risk_appetite)
+        x = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000),  alpha=.1, gamma_trans=10, gamma_risk=1000, date=Portfolio.to_integer(PortfolioConstants.START_DATE), end=36, risk_appetite=risk_appetite)
+        time_difference = datetime.datetime.relativedelta(PortfolioConstants.END_DATE, PortfolioConstants.START_DATE).years
+        difference_in_years = time_difference.years
+        print(x[1][3], "Sharpe")
+        print(x[1][1], "Annualized Returns")
+        print(x[1][2], "Vol")
+        print(x[1][-1], "Portfolio value")
+        sharpe=np.round(x[1][3],3)
+        returns=np.round(x[1][1],3)
+        vol=np.round(x[1][2],3)
+
+        #X[1][1] is annualized returns
+        #X[1][2] is vol
+        #X[1][3] is sharpe
+        #X[1][-1] is vector of Portfolio value
+        #date in yyyymmdd format, start at 7 periods (months) before required start date
+
         return jsonify(
             {
                 "Status": "Success",
                 "risk_appetite": risk_appetite,
                 "horizon": horizon,
                 "goal": goal,
-                "amount_invested": amount_invested
+                "amount_invested": amount_invested,
+                'sharpe' : sharpe,
+                'returns' : returns,
+                'vol' : vol,
+                'time_difference' : time_difference
             }
         )
     return jsonify({"Status": "error use POST request"})
@@ -224,4 +246,28 @@ def pushParams(email):
 #                 "goal": goal,
 #             }
 #         )
-    return jsonify({"Status": "error use POST request"})
+#     return jsonify({"Status": "error use POST request"})
+
+# @portfolio_blueprint.route("/pushWeights/<string:email>", methods=["GET", "POST"])
+# def pushParams(email):
+#     email = str(email)
+#     if request.method == "POST":
+#         port_data = Database.find_one(
+#             PortfolioConstants.COLLECTION, {"user_email": email}
+#         )
+#         risk_appetite = port_data["risk_appetite"]
+#         risk_appetite = str(risk_appetite)
+#         horizon = port_data["horizon"]
+#         horizon = float(horizon)
+#         goal = port_data["goal"]
+#         goal = float(goal)
+#         print(risk_appetite)
+#         return jsonify(
+#             {
+#                 "Status": "Success",
+#                 "risk_appetite": risk_appetite,
+#                 "horizon": horizon,
+#                 "goal": goal,
+#             }
+#         )
+ #   return jsonify({"Status": "error use POST request"})
