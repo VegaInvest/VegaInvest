@@ -1,7 +1,14 @@
-from flask import Flask, render_template, send_from_directory, request,jsonify
+from flask import Flask, render_template, send_from_directory, request, jsonify
 from src.common.database import Database
+from src.models.stocks.stock import Stock
+from src.models.portfolios.portfolio import Portfolio
+import src.models.stocks.constants as StockConstants
 from flask_restful import Api, Resource, reqparse
 from flask_cors import CORS  # comment this on deployment
+import datetime
+import atexit
+from apscheduler.schedulers.background import BackgroundScheduler
+import webbrowser
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -13,14 +20,27 @@ api = Api(app)
 
 # Initialize Database before running any other command
 @app.before_first_request
-def init_db():
+def init_db_and_rawdata():
+    end_date = datetime.datetime.today()
+    start_date = end_date - datetime.timedelta(days=1)
     Database.initialize()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        func=Stock.update_mongo_daily,
+        args=[start_date, end_date, StockConstants.TICKERS],
+        trigger="cron",
+        hour=16,
+        minute=50,
+        id="job",
+    )
+    scheduler.start()
+    atexit.register(lambda: scheduler.remove_job("job"))
 
 
 # Render home page
 @app.route("/")
 def home():
-    return jsonify({"MSG":"yo"})
+    return jsonify({"MSG": "Welcome to Backend"})
 
 
 # @app.route("/yo", methods=["GET", "POST"])

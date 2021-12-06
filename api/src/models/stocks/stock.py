@@ -51,6 +51,74 @@ class Stock(object):
         data = data[mindate:maxdate]
         return data
 
+    def update_mongo_daily(start_date, end_date, Tickers):
+        last_date = Stock.price_range_checker(start_date, end_date, "rawdata")
+        print("yep")
+        if (last_date < start_date) or (
+            last_date > start_date and last_date < end_date
+        ):
+            data = Stock.get_daily_prices(Tickers, last_date, end_date)
+            data = Stock.yf_to_mongo(data)
+            for item in data.to_dict("record"):
+                Database.update(
+                    "rawdata",
+                    {"Date": item["Date"]},
+                    {"$set": item},
+                )
+            return "updated"
+        if not (last_date == "error date range"):
+            data = Stock.get_daily_prices(Tickers, start_date, end_date)
+            data = Stock.yf_to_mongo(data)
+            for item in data.to_dict("record"):
+                Database.update(
+                    "rawdata",
+                    {"Date": item["Date"]},
+                    {"$set": item},
+                )
+            return "updated"
+        return "no need for update"
+
+    def get_daily_prices(Tickers, start_date, end_date):
+        data = yf.download(Tickers, interval="1d", start=start_date, end=end_date)[
+            "Adj Close"
+        ]
+        data.columns.name = ""
+        return data
+
+    def price_range_checker(start_date, end_date, collection):
+        if (
+            start_date.weekday() > 5
+            and end_date.weekday() > 5
+            and (end_date.day - start_date.day > 2)
+        ):
+            return "error date range"
+        try:
+            blah = Database.find(
+                collection, {"Date": {"$gte": start_date, "$lte": end_date}}
+            )
+            last_date = Stock.mongo_to_df(blah).iloc[-1].name
+            return last_date
+        except:
+            blah = Database.findmax(collection, "Date")
+            # blah=Database.DATABASE[collection].find().sort("Date",-1).limit(1)
+            last_date = Stock.mongo_to_df(blah).iloc[-1].name
+            return last_date
+
+    def mongo_to_df(results):
+        datab = pd.DataFrame.from_dict(
+            results, orient="columns", dtype=None, columns=None
+        )
+        datab.drop(columns="_id", inplace=True)
+        datab.set_index("Date", inplace=True)
+        return datab
+
+    def yf_to_mongo(data):
+        data.columns.name = ""
+        data.reset_index(inplace=True)
+        data.rename(columns={"index": "Date"}, inplace=True)
+        data.columns = data.columns.astype(str)
+        return data
+
     def update_rawData():
         date = datetime.datetime.today()
         # add if date.hour==22: update record everyday do this
@@ -116,8 +184,10 @@ class Stock(object):
         data.dropna(inplace=False)
         data.rename(columns={"index": "Ticker"}, inplace=True)
         data.columns = data.columns.astype(str)
-        Database.initialize()
-        Database.update("rawdata", {}, {"$set": data.to_dict("record")[0]}, upsert=True)
+        for item in data.to_dict("record"):
+            Database.update(
+                "rawdata", {"Date": data["Date"]}, {"$set": item}, upsert=True
+            )
 
     def get_from_db(startdate, enddate):
         # Stock.push_rawData(startdate,enddate)
