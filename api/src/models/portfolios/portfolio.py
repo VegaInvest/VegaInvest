@@ -812,6 +812,4 @@ class Portfolio(object):
                 PortfolioConstants.COLLECTION, {"user_email": email}
             )
         ]
-# blah comment
 
-#monkey in = monkey out
