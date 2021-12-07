@@ -144,7 +144,7 @@ class Portfolio(object):
         excess_ret = data[0].resample('M').agg(lambda x: (x + 1).prod() - 1)
         factor_ret = data[1].resample('M').agg(lambda x: (x + 1).prod() - 1)
         raw_rets = data[2].resample('M').agg(lambda x: (x + 1).prod() - 1)
-        #blahhhh
+        #blahhhhhhhhhhhhhhhhhhh
         weights = []
 
         height = (len(excess_ret)-lookback)//forecast_window
