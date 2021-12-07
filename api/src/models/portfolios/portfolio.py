@@ -156,9 +156,9 @@ class Portfolio(object):
             mu = params[0].transpose()
             Q = params[1]
             rbt_mu = Portfolio.robust_mu(mu, Q, alpha, forecast_window)
-            if risk_appetite == 1:
+            if risk_appetite == 'high':
                 weights = weights + [np.array(Portfolio.multi_sharpe(mu, Q, forecast_window, gamma_trans, gamma_risk))]
-            elif risk_appetite == 2:
+            elif risk_appetite == 'low':
                 weights = weights + [np.array(Portfolio.multi_rp(rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
             else:
                 weights = weights + [np.array(Portfolio.multi_period_mvo(rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
