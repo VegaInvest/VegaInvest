@@ -581,6 +581,9 @@ class Portfolio(object):
             z_vars.append(weights)
 
         test = sum(prob_arr).solve(solver=cvx.SCS) # this solver was needed for risk-parity formula 
+        for i in z_vars:
+            output_weight_list.append(i.value) # retrieve weights in each period 
+        return output_weight_list
 
     def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
         rf = 0.0025  # fed funds rate upper bound to add robustness to model,
