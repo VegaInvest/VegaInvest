@@ -487,40 +487,53 @@ class Portfolio(object):
         # 8. dates
         # 9. porfolio value vector (multiplier)
 
-    def multi_period_mvo(mu, cov, forecast, gamma_trans, gamma_risk):
-        n = len(mu[0])
-        w = np.full(len(mu[0]), 0)
+############ MVO Model ###############
 
-        prob_arr = []
-        z_vars = []
+# Function Inputs:
+# mu -> expected forecasted period returns
+# cov -> expected forecasted asset return covariance matrix 
+# forecast -> number of periods where portfolio is rebalanced
+# gamma_trans -> transaction cost parameter
+# gamma_risk -> risk aversion parameter, hyperparameter that was tested, 1000 worked best
 
-        beebee = []
+    def multi_period_mvo(mu, cov, forecast, gamma_trans, gamma_risk=1000):
+        n = len(mu[0]) # # of assets
+        w = np.full(len(mu[0]), 0) # start with 0 asset allocation 
+
+        prob_arr = [] # empty list which will contain different instances of problem to be optimized as we keep progressing in each period 
+        z_vars = [] # empty list which will store the weights from each forecasted period
+
+        output_weight_list = []
         for tau in range(forecast):
+            # binary = cvx.Variable(n, boolean = True) # this was for cardinality constraint testing, didn't use because it didn't improve performance and was computationally expensive
             z = cvx.Variable(*w.shape)
 
             wplus = w + z
 
             obj = Portfolio.cost_function(
-                mu, tau, wplus, gamma_risk, z, gamma_trans, cov
+                mu, tau, wplus, gamma_risk, z, gamma_trans, cov # MVO return-risk tradeoff objective function with transaction cost
             )
 
             constr = []
 
-            constr += [cvx.sum(wplus) == 1]
-            constr += [wplus >= 0]
-            constr += [wplus <= 1 / 3]
-
+            constr += [cvx.sum(wplus) == 1] # asset weightings add to 1
+            constr += [wplus >= 0] # long only 
+            #constr += [wplus <= 1 / 3] # test weighting limit to promote greater cardinality 
+            #constr += binary = cvx.Bool(n)
+            #constr += [w - binary <= 0] # force binary values to be 1
+            #constr += [cvx.sum_entries(binary) == k] # k can be any constant representing cardinality 
             prob = cvx.Problem(cvx.Maximize(obj), constr)
             prob_arr.append(prob)
-            z_vars.append(wplus)
-            w = wplus
+            z_vars.append(wplus) #store weights in each period 
+            w = wplus # update next period starting weights with current weights 
 
-        test = sum(prob_arr).solve(solver=cvx.SCS)
+        test = sum(prob_arr).solve(solver=cvx.SCS) # solve problem 
 
         for i in z_vars:
-            beebee.append(i.value)
-        return beebee
+            output_weight_list.append(i.value) # retrieve weights in each period 
+        return output_weight_list
 
+# Mvo Objective Function #
     def cost_function(mu, tau, wplus, gamma_risk, z, gamma_trans, cov):
 
         exp_ret = mu[tau].T * wplus
@@ -528,39 +541,49 @@ class Portfolio(object):
 
         return exp_ret - gamma_risk * risk - sum(cvx.abs(z) * gamma_trans)
 
-    def multi_rp(mu, cov, forecast, gamma_trans, gamma_risk):
-        n = len(mu[0])
-        w = np.full(len(mu[0]), 0)
-        prob_arr = []
-        z_vars = []
-        beebee = []
+############ Risk Parity Model ###############
 
-        for tau in range(forecast):
+# Function Inputs:
+# mu -> expected forecasted period returns
+# cov -> expected forecasted asset return covariance matrix 
+# forecast -> number of periods where portfolio is rebalanced
+# gamma_trans -> transaction cost parameter
+
+    def multi_rp(mu, cov, forecast, gamma_trans, gamma_risk):
+        n = len(mu[0]) # retrieve number of assets 
+        w = np.full(len(mu[0]), 0) # empty vector of dimension 25 where weights in a given period will be stored, start with 0 allocation 
+        prob_arr = [] # empty list which will contain different instances of problem to be optimized as we keep progressing in each period 
+        z_vars = [] # empty list which will store the weights from each forecasted period
+        output_weight_list = []
+
+        for tau in range(forecast): # iterate through forecasting periods 
             y = cvx.Variable(n)
-            wplus = w + y
+            wplus = w + y # progress based off of previous period 
             constr = []
             y_sum = 0
             for j in range(n):
-                y_sum += cvx.log(y[j])
+                y_sum += cvx.log(y[j]) # sum up logarithm of asset contribution as per risk-parity formulation 
 
             obj = (
+<<<<<<< HEAD
                 0.5 * cvx.quad_form(y, cov[tau]) -
                 y_sum + gamma_trans * sum(cvx.abs(y))
+=======
+                0.5 * cvx.quad_form(y, cov[tau]) - y_sum + gamma_trans * sum(cvx.abs(y)) # objective function with transaction costs 
+>>>>>>> 6ee61a7780d67291d3378fe79fbd96e65a0859bb
             )
 
-            constr += [wplus >= 0]
+            constr += [wplus >= 0] # risk-parity constraint 
 
             prob = cvx.Problem(cvx.Minimize(obj), constr)
             prob_arr.append(prob)
             w = wplus
-            weights = wplus / sum(wplus)
+            weights = wplus / sum(wplus) # calculate the weights
             z_vars.append(weights)
 
-        test = sum(prob_arr).solve(solver=cvx.SCS)
-        for i in z_vars:
-            beebee.append(i.value)
-        return beebee
+        test = sum(prob_arr).solve(solver=cvx.SCS) # this solver was needed for risk-parity formula 
 
+<<<<<<< HEAD
     def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
         rf = 0.0025  # fed funds rate upper bound to add robustness to model,
         # can be changed to actual rfr data, but max since 2016 is 21.02 bps
@@ -578,108 +601,133 @@ class Portfolio(object):
             r_excess = mu[tau] - rf_hat
 
             wplus = w + z
+=======
+        for i in z_vars:
+            output_weight_list.append(i.value) # append weights to list 
+        return output_weight_list
+>>>>>>> 6ee61a7780d67291d3378fe79fbd96e65a0859bb
 
-            kappa = (np.power(r_excess, -1)).T * wplus
-            obj = cvx.quad_form(y, cov[tau]) + gamma_trans * sum(cvx.abs(z))
+############ Max Sharpe Model ###############
 
-            constr = []
-            constr += [cvx.sum(wplus) == 1]
-            constr += [wplus >= 0]
-            constr += [r_excess.T * y == 1]
-            constr += [cvx.sum(y) == kappa]
-            constr += [kappa >= 0]
-            constr += [y >= 0]
+# Function Inputs:
+# mu -> expected forecasted period returns
+# cov -> expected forecasted asset return covariance matrix 
+# forecast -> number of periods where portfolio is rebalanced
+# gamma_trans -> transaction cost parameter
 
-            prob = cvx.Problem(cvx.Minimize(obj), constr)
+    def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
+        rf = 0.0025 # fed funds rate upper bound to add robustness to model
+        rf_hat = np.ones(len(mu[0])) * rf # vector of the risk free rate 
+        w = np.full(len(mu[0]), 0) # empty vector of dimension 25 where weights in a given period will be stored, start with 0 allocation 
+        prob_arr = [] # empty list which will contain different instances of problem to be optimized as we keep progressing in each period 
+        z_vars = [] # empty list which will store the weights from each forecasted period
+        output_weight_list = [] # empty list of output weights in each period       
+
+        for tau in range(forecast): # iterate through forecasting periods 
+            y = cvx.Variable(*rf_hat.shape) # variable for the convex formulation of sharpe-ratio optimization 
+            z = cvx.Variable(*rf_hat.shape) # weights in period 
+            r_excess = mu[tau] - rf_hat # numerator of sharpe ratio 
+
+            wplus = w + z # get current period allocation from previous allocation 
+
+            kappa = (np.power(r_excess, -1)).T * wplus # variable for transformation 
+            obj = cvx.quad_form(y, cov[tau]) + gamma_trans * sum(cvx.abs(z)) # sharpe ratio objective function with transaction cost
+
+            constr = [] # list of constraints 
+            constr += [cvx.sum(wplus) == 1] # weights must add to 1
+            constr += [wplus >= 0] # long only
+            constr += [r_excess.T * y == 1] # sharpe formulation constraint 
+            constr += [cvx.sum(y) == kappa] # constraint from variable transform 
+            constr += [kappa >= 0] # non-negativity 
+            constr += [y >= 0] # non-negativity 
+
+            prob = cvx.Problem(cvx.Minimize(obj), constr) # set up problem to be solved 
             prob_arr.append(prob)
-            weights = y / cvx.sum(y)
+            weights = y / cvx.sum(y) # recover true value of weights 
             z_vars.append(weights)
             w = wplus
 
-        test = sum(prob_arr).solve(solver=cvx.ECOS)
+        test = sum(prob_arr).solve(solver=cvx.ECOS) # solve multi-period optimization problem 
 
         for i in z_vars:
-            beebee.append(i.value)
-        return beebee
+            output_weight_list.append(i.value) # append weights to list 
+        return output_weight_list
 
-    # def runMVO(
-    #     self,
-    #     start_date=PortfolioConstants.START_DATE,
-    #     end_date=PortfolioConstants.END_DATE,
-    #     samples=100,
-    # ):
-    #     """
-    #     (A) Gets Portfolio characteristics (exp. return & cov. matrix)
-    #     (B) Runs basic MVO for different risk aversion values (gamma)
-    #     (C) Portfolio weights given current portfolio's risk aversion are extracted and assigned to
-    #         current portfolio instance which is then updated in MongoDB
-    #     (D) A figure of the efficient frontier for all risk aversion parameters is created along with
-    #         the individual assets used.
 
-    #     :param start_date: time-series start date as string format (ex: YYYY-MM-DD '2006-01-01')
-    #     :param end_date: time-series start date as string format (ex: YYYY-MM-DD '2016-12-31')
-    #     :param samples: number of portfolios to compute for comparison/ efficient frontier
+############ CVaR Model ###############
 
-    #     :return: Matplotlib figure object of efficient frontier
-    #     """
+# Commented out because it did not end up being selected, offered poor performance and was computationally inefficient. 
 
-    #     #        (A)        #
-    #     #####################
-    #     mu, cov = self.get_Params(start_date, end_date)
-    #     std = np.sqrt(np.diag(cov))
-    #     n = len(mu)
+# Function Inputs:
+# mu -> expected forecasted period returns
+# cov -> expected forecasted asset return covariance matrix 
+# forecast -> number of periods where portfolio is rebalanced
+# gamma_trans -> transaction cost parameter
 
-    #     #        (B)        #
-    #     #####################
-    #     w = cvx.Variable(n)
-    #     gamma = cvx.Parameter(nonneg=True)
-    #     exp_ret = mu.T * w
-    #     cov[cov < 0] = 0
-    #     risk = cvx.quad_form(w, cov)
 
-    #     prob = cvx.Problem(
-    #         cvx.Maximize(exp_ret - gamma * risk), [cvx.sum(w) == 1, w >= 0]
-    #     )
+    # def multi_period_cvar_TEST(mu, cov, forecast, gamma_trans):
+    #     n = len(mu[0])  
+    #     w = np.full(len(mu[0]),0) # empty vector of dimension 25 where weights in a given period will be stored, start with 0 allocation 
 
-    #     SAMPLES = samples
-    #     risk_data = np.zeros(SAMPLES)
-    #     ret_data = np.zeros(SAMPLES)
-    #     ws = []
-    #     gamma_vals = np.logspace(-2, 4, num=SAMPLES)
+    #     prob_arr = [] # empty list which will contain different instances of problem to be optimized as we keep progressing in each period 
+    #     z_vars = [] # empty list which will store the weights from each forecasted period
+    #     gamma_list = [] 
+    #     scenarios = 10000 # number of simulations for possible portfolio loss returns 
+    #     alpha = 0.9 # confidence level 
+    #     output_weight_list = [] # empty list of output weights in each period  
+        
+    #     for tau in range(forecast): # iterate through forecasting periods 
+    #         std = np.sqrt(np.diag(cov[tau])) # retrieve asset return standard deviation to simulate returns 
+    #         ret_sim = np.zeros((scenarios,n)) # empty vector that will be simulated returns 
 
-    #     for i in range(SAMPLES):
-    #         gamma.value = gamma_vals[i]
-    #         prob.solve()
-    #         risk_data[i] = cvx.sqrt(risk).value
-    #         ws.append(np.array(w.value).T.tolist())
-    #         ret_data[i] = exp_ret.value
+    #         z = cvx.Variable(*w.shape) # asset allocation change  
+    #         gamma_var = cvx.Variable(1) # var value 
 
-    #     w_minVar = cvx.Variable(n)
-    #     exp_ret_minVar = mu.T * w_minVar
+    #         wplus = w + z # per-period weights 
 
-    #     risk_minVar = cvx.quad_form(w_minVar, cov)
-    #     prob_minVar = cvx.Problem(
-    #         cvx.Minimize(risk_minVar), [cvx.sum(w_minVar) == 1, w_minVar >= 0]
-    #     )
-    #     prob_minVar.solve()
-    #     risk_data_minVar = cvx.sqrt(risk_minVar).value
-    #     ret_data_minVar = exp_ret_minVar.value
+    #         constr = [] 
+    #         z_sim = cvx.Variable(scenarios)
+    #         for j in range(scenarios): # run simulations 
+    #             ret_sim[j] = simulated_return(mu,std,tau) # get simulated returns     
 
-    #     #        (C)        #
-    #     #####################
-    #     gam = PortfolioConstants.RISK_APP_DICT.get(self.risk_appetite)
+    #         obj = gamma_var + (1/((1-alpha)*scenarios))*sum(z_sim) + sum(cvx.abs(z)*gamma_trans ) # CVaR objective function with transaction cost
 
-    #     port_weights = ws[gam]
-    #     self.weights = port_weights
-    #     self.save_to_mongo()
+    #         gamma_stretch = gamma_var * np.ones((*z_sim.shape))
+            
+    #         if tau != (forecast-1):
+    #             constr += [cvx.sum(wplus) == 1] # percentage allocation must add to 1
+    #             constr += [wplus>=0] # long only 
+    #             constr += [z_sim >= 0] # must be the max of 0 or the loss minus var value 
+    #             constr += [z_sim >= -ret_sim * wplus - gamma_stretch]
+    #         
+    #         elif tau == (forecast - 1): # if we in final period 
+    #             constr += [wplus>=0]
+    #             constr += [cvx.sum(wplus) == 0] # sell off constraint
+    #             constr += [z_sim >= 0]
+    #             constr += [z_sim >= -ret_sim * wplus - gamma_stretch]
 
-    #     #        (D)        #
-    #     #####################
-    #     fig = self.plot_comparison(
-    #         risk_data, ret_data, gamma_vals, risk_data_minVar, ret_data_minVar, std, mu
-    #     )
+    #         prob = cvx.Problem(cvx.Minimize(obj), constr) # set up problem to be solved 
+    #         prob_arr.append(prob)
+    #         z_vars.append(wplus)
+    #         gamma_list.append(gamma_var)
+    #         w = wplus   
 
-    #     return fig
+    #     test = sum(prob_arr).solve(solver=cvx.SCS) # solve optimization problem 
+
+    #     for i in z_vars:
+    #         output_weight_list.append(i.value) # append weights to list 
+    #     return output_weight_list
+
+############ HELPER FUNCTION FOR CVaR Model ###############
+
+    # def simulated_return(mu,std,tau):
+    #     new_returns = np.zeros(len(mu[0]))
+    #     for i in range(len(mu[0])):
+    #         e = np.random.normal(0,std[i],1)
+    #         new_returns[i] = mu[tau][i] + e[0] # simulate possible exepected returns with normal distribution 
+    #     return new_returns
+
+   
 
     def Import_data_inputs(startdate, tickers):
         startdate = max(20160914, startdate)
