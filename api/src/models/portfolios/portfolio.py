@@ -188,6 +188,7 @@ class Portfolio(object):
         #date in yyyymmdd format, start at 7 periods (months) before required start date
 
     def Param_forecast(input_stock_rets, input_factor_rets, lookback, forecast, model):
+        # forecast mu and Q based on lookback and selected regression model
         if forecast > lookback:
             print("Warning! Increase lookback length to display full forecast.")
         forecast = min(forecast, lookback)
@@ -217,6 +218,8 @@ class Portfolio(object):
         return mu, Q
 
     def factor_forecast(factor_rets, lookback, forecast):
+        # forecast factors based on simple geometric means
+        # ARIMA was tested but worked too inconsistently to be used
         output = np.full((forecast, factor_rets.shape[1]), np.nan)
         rolling = factor_rets[-lookback:]
 
@@ -233,7 +236,8 @@ class Portfolio(object):
         lookback,
         forecast,
         model,
-    ):  # single stock forecast
+    ):  
+        # single stock forecast of factor betas throughout time consistent with given lookback for given forecast period
         betas = np.full((forecast, factor_forecast.shape[1]), np.nan)
         alphas = np.full(forecast, np.nan)
         rolling = single_stock_ret[-lookback:]
@@ -249,7 +253,8 @@ class Portfolio(object):
 
         return alphas, betas, mu
 
-    def cov_forecast(rets_historical, rets_forecast, lookback, forecast):
+    def cov_forecast(rets_historical, rets_forecast, lookback, forecast): 
+        #creates cov matrix of predictions consistent with lookbac period
         Q = []
         rets = np.vstack([rets_historical[-lookback:], rets_forecast])
 
@@ -260,7 +265,8 @@ class Portfolio(object):
 
         return Q
 
-    def robust_mu(mu, Q, alpha, forecast_window):
+    def robust_mu(mu, Q, alpha, forecast_window): 
+        # creates mu consistent with long-only robust optimzation
         robust_mu = []
         for i in range(forecast_window):
             robust_mu = robust_mu + [mu[i] - alpha * (np.diag(Q[i])**.5)]
@@ -336,7 +342,8 @@ class Portfolio(object):
     
 
 
-    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates): #returns portfolio performance metrics
+    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates): 
+        #returns portfolio performance metrics
 
         portf_ret = np.diag(np.matmul(rets, weights.transpose()))
         benchmark = benchmark + rfr
@@ -432,7 +439,7 @@ class Portfolio(object):
 
             constr += [cvx.sum(wplus) == 1]
             constr += [wplus >= 0]
-            constr += [wplus <= 1/3]
+            constr += [wplus <= 1 / 3]
 
             prob = cvx.Problem(cvx.Maximize(obj), constr)
             prob_arr.append(prob)
