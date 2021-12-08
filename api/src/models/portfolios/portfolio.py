@@ -85,6 +85,7 @@ class Portfolio(object):
     def get_Params(
         self, start_date, end_date, tickers, lookback, forecast_window, estimation_model
     ):
+        # uses fama french and stock data to run param forecast and extract mu and Q
         data = Portfolio.Import_data_inputs(start_date, tickers)
 
         excess_ret = data[0].resample("M").agg(lambda x: (x + 1).prod() - 1)
@@ -150,7 +151,13 @@ class Portfolio(object):
     #     return mu, cov
     def multi_period_backtesting(tickers, forecast_window, lookback, estimation_model, alpha, gamma_trans, gamma_risk, date, end, risk_appetite):
 
+        # backtesting fucnction that calls a given porfolio optimzer and parameters with a selected estimation regressor as well as start and end dates
+        # the portfolio evolution is then created and metrics are reported
         date = max(20160914,date)
+
+
+        # backtesting fucnction that calls a given porfolio optimzer and parameters with a selected estimation regressor as well as start and end dates
+        # the portfolio evolution is then created and metrics are reported
         #print("Start Date: ", date)
         #print(date,"\n")
         
@@ -713,6 +720,7 @@ class Portfolio(object):
 
 
     def save_to_mongo(self):
+        print("saved")
         Database.update(PortfolioConstants.COLLECTION, {"_id": self._id}, self.json())
 
     def json(self):  # Creates JSON representation of portfolio instance
