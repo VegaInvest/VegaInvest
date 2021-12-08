@@ -585,27 +585,6 @@ class Portfolio(object):
             output_weight_list.append(i.value) # retrieve weights in each period 
         return output_weight_list
 
-    def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
-        rf = 0.0025  # fed funds rate upper bound to add robustness to model,
-        # can be changed to actual rfr data, but max since 2016 is 21.02 bps
-        rf_hat = np.ones(len(mu[0])) * rf
-        one_vec = np.ones(len(mu[0]))
-        w = np.full(len(mu[0]), 0)
-        prob_arr = []
-        z_vars = []
-        beebee = []
-        # gamma_trans = 30
-        # gamma_risk = 1
-        for tau in range(forecast):
-            y = cvx.Variable(*rf_hat.shape)
-            z = cvx.Variable(*rf_hat.shape)
-            r_excess = mu[tau] - rf_hat
-
-            wplus = w + z
-        for i in z_vars:
-            output_weight_list.append(i.value) # append weights to list 
-        return output_weight_list
-
 
 ############ Max Sharpe Model ###############
 
