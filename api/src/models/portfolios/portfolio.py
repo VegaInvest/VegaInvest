@@ -336,7 +336,7 @@ class Portfolio(object):
     
 
 
-    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates):
+    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates): #returns portfolio performance metrics
 
         portf_ret = np.diag(np.matmul(rets, weights.transpose()))
         benchmark = benchmark + rfr
@@ -394,7 +394,7 @@ class Portfolio(object):
         #print("Green - Portfolio Returns")
 
         return (
-            portf_ret[-1],
+            portf_ret[-1], 
             Annual,
             Vol,
             Sharpe,
@@ -402,6 +402,14 @@ class Portfolio(object):
             Sortino,
             drawdown.max()[0], t, portf_ret
         )
+        #1. final return multiple
+        #2. annual ret
+        #3. annual vol
+        #4. annual sharpe
+        #5/6. Information/Sortino ratios
+        #7. max drawdown
+        #8. dates
+        #9. porfolio value vector (multiplier)
 
     def multi_period_mvo(mu, cov, forecast, gamma_trans, gamma_risk):
         n = len(mu[0])
