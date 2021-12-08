@@ -344,7 +344,7 @@ class Portfolio(object):
     
 
 
-    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates):
+    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates): #returns portfolio performance metrics
 
         portf_ret = np.diag(np.matmul(rets, weights.transpose()))
         benchmark = benchmark + rfr
@@ -402,7 +402,7 @@ class Portfolio(object):
         #print("Green - Portfolio Returns")
 
         return (
-            portf_ret[-1],
+            portf_ret[-1], 
             Annual,
             Vol,
             Sharpe,
@@ -410,6 +410,14 @@ class Portfolio(object):
             Sortino,
             drawdown.max()[0], t, portf_ret
         )
+        #1. final return multiple
+        #2. annual ret
+        #3. annual vol
+        #4. annual sharpe
+        #5/6. Information/Sortino ratios
+        #7. max drawdown
+        #8. dates
+        #9. porfolio value vector (multiplier)
 
     def multi_period_mvo(mu, cov, forecast, gamma_trans, gamma_risk):
         n = len(mu[0])
@@ -432,7 +440,7 @@ class Portfolio(object):
 
             constr += [cvx.sum(wplus) == 1]
             constr += [wplus >= 0]
-            constr += [wplus <= 1 / 3]
+            constr += [wplus <= 1/3]
 
             prob = cvx.Problem(cvx.Maximize(obj), constr)
             prob_arr.append(prob)
@@ -485,7 +493,8 @@ class Portfolio(object):
         return beebee
 
     def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
-        rf = 0.0025 # fed funds rate upper bound to add robustness to model
+        rf = 0.0025 # fed funds rate upper bound to add robustness to model, 
+        # can be changed to actual rfr data, but max since 2016 is 21.02 bps
         rf_hat = np.ones(len(mu[0])) * rf
         one_vec = np.ones(len(mu[0]))
         w = np.full(len(mu[0]), 0)
@@ -627,7 +636,7 @@ class Portfolio(object):
 
         return excess_rets, factor_rets, stocks_rets
 
-    def Import_factors(startdate):
+    def Import_factors(startdate): #imports Fama-French 5 factors and momentum factor from Kenneth French's website
         url = urlopen(
             "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_5_Factors_2x3_daily_CSV.zip"
         )
@@ -663,7 +672,7 @@ class Portfolio(object):
 
         return FFdata
 
-    def Import_stocks(startdate, tickers):
+    def Import_stocks(startdate, tickers): #imports stock adjusted close data from database and converts it to a monthly return
         startdate = startdate - 1
         startdate = (
             str(startdate)[4:6] + "/" + str(startdate)[6:8] + "/" + str(startdate)[0:4]
@@ -745,3 +754,7 @@ class Portfolio(object):
                 PortfolioConstants.COLLECTION, {"user_email": email}
             )
         ]
+<<<<<<< HEAD
+=======
+
+>>>>>>> ee945c4f14748605cdd65deaa6cd7d62cf507e7d
