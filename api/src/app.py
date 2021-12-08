@@ -1,3 +1,6 @@
+from src.models.stocks.views import stock_blueprint
+from src.models.portfolios.views import portfolio_blueprint
+from src.models.users.views import user_blueprint
 from flask import Flask, render_template, send_from_directory, request, jsonify
 from src.common.database import Database
 from src.models.stocks.stock import Stock
@@ -20,6 +23,8 @@ CORS(app)  # comment this on deployment
 api = Api(app)
 
 # Initialize Database before running any other command
+
+
 @app.before_first_request
 def init_db_and_rawdata():
     end_date = datetime.datetime.today()
@@ -34,8 +39,8 @@ def init_db_and_rawdata():
         func=Stock.update_mongo_daily,
         args=[start_date, end_date, StockConstants.TICKERS],
         trigger="cron",
-        hour=16,
-        minute=50,
+        hour=4,
+        minute=54,
         id="job",
     )
     scheduler.start()
@@ -56,9 +61,6 @@ def home():
 
 
 # Import all views
-from src.models.users.views import user_blueprint
-from src.models.portfolios.views import portfolio_blueprint
-from src.models.stocks.views import stock_blueprint
 
 # Register views in Flask app
 app.register_blueprint(user_blueprint, url_prefix="/users")

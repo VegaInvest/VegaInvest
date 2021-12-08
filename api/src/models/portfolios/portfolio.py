@@ -1,3 +1,15 @@
+from numpy import matlib
+from urllib.request import urlopen
+from zipfile import ZipFile
+from io import BytesIO
+from scipy import stats
+from sklearn import metrics
+from scipy.stats.mstats import gmean
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn import linear_model
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
 from pandas.core.indexes import datetimes
 from src.models.portfolios.constants import START_DATE
 from src.models.stocks.stock import Stock
@@ -16,27 +28,10 @@ import matplotlib.pyplot as plt
 from dateutil.relativedelta import relativedelta
 
 plt.style.use("ggplot")
-import cvxpy as cvx
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-import pandas as pd
-import numpy as np
-from sklearn import linear_model
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from scipy.stats.mstats import gmean
-from sklearn import metrics
-from scipy import stats
-import matplotlib.pyplot as plt
-from io import BytesIO
-from zipfile import ZipFile
-from urllib.request import urlopen
-from numpy import matlib
 
 
 matplotlib.use("Agg")
 
-import matplotlib.pyplot as plt
 
 plt.style.use("ggplot")
 
@@ -96,7 +91,7 @@ class Portfolio(object):
 
         params = Portfolio.Param_forecast(
             np.array(excess_ret[-lookback:]),
-            np.array(factor_ret[-len(excess_ret) :])[-lookback:],
+            np.array(factor_ret[-len(excess_ret):])[-lookback:],
             lookback=7,
             forecast=forecast_window,
             model=estimation_model,
@@ -153,14 +148,13 @@ class Portfolio(object):
 
         # backtesting fucnction that calls a given porfolio optimzer and parameters with a selected estimation regressor as well as start and end dates
         # the portfolio evolution is then created and metrics are reported
-        date = max(20160914,date)
-
+        date = max(20160914, date)
 
         # backtesting fucnction that calls a given porfolio optimzer and parameters with a selected estimation regressor as well as start and end dates
         # the portfolio evolution is then created and metrics are reported
         #print("Start Date: ", date)
-        #print(date,"\n")
-        
+        # print(date,"\n")
+
         if risk_appetite == "high":
             print("Multi Period Sharpe Ratio Optimization")
         elif risk_appetite == "low":
@@ -173,48 +167,57 @@ class Portfolio(object):
         excess_ret = data[0].resample('M').agg(lambda x: (x + 1).prod() - 1)
         factor_ret = data[1].resample('M').agg(lambda x: (x + 1).prod() - 1)
         raw_rets = data[2].resample('M').agg(lambda x: (x + 1).prod() - 1)
-        print(raw_rets[["PALL"]])
+        # print(raw_rets[["PALL"]])
         weights = []
 
         height = (len(excess_ret)-lookback)//forecast_window
         n_stocks = len(tickers)
         dates = excess_ret.index[-lookback:]
         for i in range(height):
-            
-            params = Portfolio.Param_forecast(np.array(excess_ret[i*forecast_window:i*forecast_window+lookback]), np.array(factor_ret[-len(excess_ret):])[i*forecast_window:i*forecast_window+lookback], lookback=7, forecast=forecast_window, model=estimation_model)
+
+            params = Portfolio.Param_forecast(np.array(excess_ret[i*forecast_window:i*forecast_window+lookback]), np.array(factor_ret[-len(
+                excess_ret):])[i*forecast_window:i*forecast_window+lookback], lookback=7, forecast=forecast_window, model=estimation_model)
             mu = params[0].transpose()
             Q = params[1]
             rbt_mu = Portfolio.robust_mu(mu, Q, alpha, forecast_window)
             if risk_appetite == 'high':
-                weights = weights + [np.array(Portfolio.multi_sharpe(mu, Q, forecast_window, gamma_trans, gamma_risk))]
+                weights = weights + \
+                    [np.array(Portfolio.multi_sharpe(
+                        mu, Q, forecast_window, gamma_trans, gamma_risk))]
             elif risk_appetite == 'low':
-                weights = weights + [np.array(Portfolio.multi_rp(rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
+                weights = weights + \
+                    [np.array(Portfolio.multi_rp(
+                        rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
             else:
-                weights = weights + [np.array(Portfolio.multi_period_mvo(rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
+                weights = weights + \
+                    [np.array(Portfolio.multi_period_mvo(
+                        rbt_mu, Q, forecast_window, gamma_trans, gamma_risk))]
 
-
-        weights = np.array(weights).reshape(height*forecast_window,len(tickers))
+        weights = np.array(weights).reshape(
+            height*forecast_window, len(tickers))
 
         weights = np.array(weights)
-        
+
         raw_rets = np.array(raw_rets)[-len(weights):]
-        bench = np.array(factor_ret.iloc[:,0])[-len(weights):]
-        rfr = np.array(factor_ret.iloc[:,5])[-len(weights):]
-        dates=(excess_ret.index.to_numpy())[-len(weights)-1:]
+        bench = np.array(factor_ret.iloc[:, 0])[-len(weights):]
+        rfr = np.array(factor_ret.iloc[:, 5])[-len(weights):]
+        dates = (excess_ret.index.to_numpy())[-len(weights)-1:]
 
         if end == 0:
-            results = Portfolio.single_period_portfolio_backtest(raw_rets, weights, bench, rfr, dates)
+            results = Portfolio.single_period_portfolio_backtest(
+                raw_rets, weights, bench, rfr, dates)
 
         else:
-            results = Portfolio.single_period_portfolio_backtest(raw_rets[:end], weights[:end], bench[:end], rfr[:end], dates[:end+1])
+            results = Portfolio.single_period_portfolio_backtest(
+                raw_rets[:end], weights[:end], bench[:end], rfr[:end], dates[:end+1])
         print('\n')
         return weights, results
-        #X[1][1] is annualized returns
+        # X[1][1] is annualized returns
         #X[1][2] is vol
         #X[1][3] is sharpe
-        #X[1][-1] is vector of Portfolio value
-        #X[1][-2] is time vector
-        #date in yyyymmdd format, start at 7 periods (months) before required start date
+        # X[1][-1] is vector of Portfolio value
+        # X[1][-2] is time vector
+        # date in yyyymmdd format, start at 7 periods (months) before required start date
 
     def Param_forecast(input_stock_rets, input_factor_rets, lookback, forecast, model):
         # forecast mu and Q based on lookback and selected regression model
@@ -242,7 +245,8 @@ class Portfolio(object):
             ]
 
         mu = np.array(mu)
-        Q = Portfolio.cov_forecast(input_stock_rets, mu.transpose(), lookback, forecast)
+        Q = Portfolio.cov_forecast(
+            input_stock_rets, mu.transpose(), lookback, forecast)
 
         return mu, Q
 
@@ -265,36 +269,37 @@ class Portfolio(object):
         lookback,
         forecast,
         model,
-    ):  
+    ):
         # single stock forecast of factor betas throughout time consistent with given lookback for given forecast period
         betas = np.full((forecast, factor_forecast.shape[1]), np.nan)
         alphas = np.full(forecast, np.nan)
         rolling = single_stock_ret[-lookback:]
-        factors = np.vstack([historical_factor_rets[-lookback:], factor_forecast])
+        factors = np.vstack(
+            [historical_factor_rets[-lookback:], factor_forecast])
 
         for i in range(forecast):
-            x = model.fit(factors[i : i + lookback], rolling)
+            x = model.fit(factors[i: i + lookback], rolling)
             betas[i] = x.coef_
             alphas[i] = x.intercept_
             ret = np.matmul(betas[i], factor_forecast[i]) + alphas[i]
             rolling = np.append(rolling[1:], [ret])
-            mu = rolling[lookback - forecast :]
+            mu = rolling[lookback - forecast:]
 
         return alphas, betas, mu
 
-    def cov_forecast(rets_historical, rets_forecast, lookback, forecast): 
-        #creates cov matrix of predictions consistent with lookbac period
+    def cov_forecast(rets_historical, rets_forecast, lookback, forecast):
+        # creates cov matrix of predictions consistent with lookbac period
         Q = []
         rets = np.vstack([rets_historical[-lookback:], rets_forecast])
 
         for i in range(forecast):
-            Q = Q + [np.cov(rets[i : i + lookback].transpose())]
+            Q = Q + [np.cov(rets[i: i + lookback].transpose())]
 
         Q = np.array(Q)
 
         return Q
 
-    def robust_mu(mu, Q, alpha, forecast_window): 
+    def robust_mu(mu, Q, alpha, forecast_window):
         # creates mu consistent with long-only robust optimzation
         robust_mu = []
         for i in range(forecast_window):
@@ -347,10 +352,11 @@ class Portfolio(object):
             )
         elif risk_appetite == "low":
             weights = np.array(
-                Portfolio.multi_rp(rbt_mu, Q, forecast_window, gamma_trans, gamma_risk)
+                Portfolio.multi_rp(rbt_mu, Q, forecast_window,
+                                   gamma_trans, gamma_risk)
             )
         else:
-            #medium
+            # medium
             weights = np.array(
                 Portfolio.multi_period_mvo(
                     rbt_mu, Q, forecast_window, gamma_trans, gamma_risk
@@ -359,27 +365,65 @@ class Portfolio(object):
 
         weights = np.array(weights)
         # print(self.weights.shape)
-         #self.save_to_mongo()
+        # self.save_to_mongo()
         Portfolio.weights_to_df(self, weights, tickers)
 
         return weights
 
-    
+    def run_backtest(amount_invest, goal, horizon, email, risk_appetite, start, last_updated):
+        amount_invest = float(amount_invest)
+        last_updated = PortfolioConstants.END_DATE
+        goal = float(goal)
+        horizon = float(horizon)
+        end = int(relativedelta(last_updated, start).years)
+        outs = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(
+            random_state=42, max_iter=5000), alpha=.1, gamma_trans=.1, gamma_risk=100000, date=Portfolio.to_integer(start), end=end*12, risk_appetite=risk_appetite)
+        curr_weights = outs[0][-1]
+        ann_returns = outs[1][1]
+        ann_vol = outs[1][2]
+        sharpe = outs[1][3]
+        port_val = outs[1][-1]
 
+        # convert dates to string
+        date_vector = []
+        dates = outs[1][-2]
+        for date in dates:
+            ts = pd.to_datetime(str(date))
+            date = ts.strftime('%Y-%m-%d')
+            date_vector.append(date)
 
-    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates): 
-        #returns portfolio performance metrics
+        port = Portfolio(
+            email,
+            risk_appetite=risk_appetite,
+            amount_invest=amount_invest,
+            goal=goal,
+            horizon=horizon,
+            curr_weights=curr_weights.tolist(),
+            ann_returns=ann_returns,
+            ann_vol=ann_vol,
+            sharpe=sharpe,
+            port_val=port_val.tolist(),
+            last_updated=last_updated,
+            start=start,
+            date_vector=date_vector
+        )
+        return port
+
+    def single_period_portfolio_backtest(rets, weights, benchmark, rfr, dates):
+        # returns portfolio performance metrics
 
         portf_ret = np.diag(np.matmul(rets, weights.transpose()))
         benchmark = benchmark + rfr
 
         Annual = (gmean(portf_ret - rfr + 1)) ** 12 - 1
         Vol = np.std(portf_ret) * (12 ** 0.5)
-        Sharpe = (gmean(portf_ret - rfr + 1)**12 - 1) / (np.std(portf_ret - rfr)*(12**0.5))
+        Sharpe = (gmean(portf_ret - rfr + 1)**12 - 1) / \
+            (np.std(portf_ret - rfr)*(12**0.5))
         Information = (gmean((portf_ret - benchmark) + 1) - 1) / np.std(
             portf_ret - benchmark
         )
-        Sortino = (gmean(portf_ret - rfr + 1) - 1) / np.std(portf_ret[portf_ret >= 0])
+        Sortino = (gmean(portf_ret - rfr + 1) - 1) / \
+            np.std(portf_ret[portf_ret >= 0])
         Beta = np.cov(portf_ret, benchmark)[0, 1] / np.var(benchmark)
 
         cum_returns = (1 + pd.DataFrame(portf_ret)).cumprod()
@@ -415,7 +459,7 @@ class Portfolio(object):
 
         portf_ret = pd.DataFrame(portf_ret + 1).cumprod()
         benchmark = pd.DataFrame(
-            benchmark + np.array(rfr)[-len(weights) :] + 1
+            benchmark + np.array(rfr)[-len(weights):] + 1
         ).cumprod()
 
         portf_ret = np.insert(np.array(portf_ret), 0, 1)
@@ -426,7 +470,7 @@ class Portfolio(object):
         # #print("Green - Portfolio Returns")
 
         return (
-            portf_ret[-1], 
+            portf_ret[-1],
             Annual,
             Vol,
             Sharpe,
@@ -434,14 +478,14 @@ class Portfolio(object):
             Sortino,
             drawdown.max()[0], t, portf_ret
         )
-        #1. final return multiple
-        #2. annual ret
-        #3. annual vol
-        #4. annual sharpe
-        #5/6. Information/Sortino ratios
-        #7. max drawdown
-        #8. dates
-        #9. porfolio value vector (multiplier)
+        # 1. final return multiple
+        # 2. annual ret
+        # 3. annual vol
+        # 4. annual sharpe
+        # 5/6. Information/Sortino ratios
+        # 7. max drawdown
+        # 8. dates
+        # 9. porfolio value vector (multiplier)
 
     def multi_period_mvo(mu, cov, forecast, gamma_trans, gamma_risk):
         n = len(mu[0])
@@ -500,7 +544,8 @@ class Portfolio(object):
                 y_sum += cvx.log(y[j])
 
             obj = (
-                0.5 * cvx.quad_form(y, cov[tau]) - y_sum + gamma_trans * sum(cvx.abs(y))
+                0.5 * cvx.quad_form(y, cov[tau]) -
+                y_sum + gamma_trans * sum(cvx.abs(y))
             )
 
             constr += [wplus >= 0]
@@ -517,7 +562,7 @@ class Portfolio(object):
         return beebee
 
     def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
-        rf = 0.0025 # fed funds rate upper bound to add robustness to model, 
+        rf = 0.0025  # fed funds rate upper bound to add robustness to model,
         # can be changed to actual rfr data, but max since 2016 is 21.02 bps
         rf_hat = np.ones(len(mu[0])) * rf
         one_vec = np.ones(len(mu[0]))
@@ -660,7 +705,8 @@ class Portfolio(object):
 
         return excess_rets, factor_rets, stocks_rets
 
-    def Import_factors(startdate): #imports Fama-French 5 factors and momentum factor from Kenneth French's website
+    # imports Fama-French 5 factors and momentum factor from Kenneth French's website
+    def Import_factors(startdate):
         url = urlopen(
             "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_5_Factors_2x3_daily_CSV.zip"
         )
@@ -696,20 +742,21 @@ class Portfolio(object):
 
         return FFdata
 
-    def Import_stocks(startdate, tickers): #imports stock adjusted close data from database and converts it to a monthly return
+    # imports stock adjusted close data from database and converts it to a monthly return
+    def Import_stocks(startdate, tickers):
         startdate = startdate - 1
         startdate = (
-            str(startdate)[4:6] + "/" + str(startdate)[6:8] + "/" + str(startdate)[0:4]
+            str(startdate)[4:6] + "/" +
+            str(startdate)[6:8] + "/" + str(startdate)[0:4]
         )
         startdate = datetime.datetime.strptime(startdate, "%m/%d/%Y")
-        end_date = PortfolioConstants.END_DATE #datetime.datetime.today()
+        end_date = PortfolioConstants.END_DATE  # datetime.datetime.today()
         stock_ret = Stock.get_from_db()[tickers]
         stock_ret = (
             stock_ret / stock_ret.shift(1) - 1
         )  # convert prices to daily returns
         stock_ret = stock_ret[1:]
         return stock_ret
-
 
     def check_collection(collectionname):
         temp = Database.getCollectionList()
@@ -718,10 +765,10 @@ class Portfolio(object):
         else:
             return False
 
-
     def save_to_mongo(self):
         print("saved")
-        Database.update(PortfolioConstants.COLLECTION, {"_id": self._id}, self.json())
+        Database.update(PortfolioConstants.COLLECTION,
+                        {"_id": self._id}, self.json())
 
     def json(self):  # Creates JSON representation of portfolio instance
         return {
@@ -733,14 +780,14 @@ class Portfolio(object):
             "goal": self.goal,
             "horizon": self.horizon,
             "start": self.start,
-            "curr_weights" : self.curr_weights,
-            "ann_returns" :  self.ann_returns,
-            "ann_vol" :  self.ann_vol,
-            "sharpe" :  self.sharpe,
-            "port_val" :  self.port_val,
-            'last_updated' : self.last_updated,
-            'start' : self.start,
-            'date_vector' : self.date_vector
+            "curr_weights": self.curr_weights,
+            "ann_returns":  self.ann_returns,
+            "ann_vol":  self.ann_vol,
+            "sharpe":  self.sharpe,
+            "port_val":  self.port_val,
+            'last_updated': self.last_updated,
+            'start': self.start,
+            'date_vector': self.date_vector
         }
 
     def weights_to_df(self, weights, tickers):

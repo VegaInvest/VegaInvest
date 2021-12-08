@@ -12,7 +12,8 @@ import pandas as pd
 import json
 import numpy as np
 
-ts = TimeSeries(key=StockConstants.API, output_format=StockConstants.OUTPUTFORMAT)
+ts = TimeSeries(key=StockConstants.API,
+                output_format=StockConstants.OUTPUTFORMAT)
 
 
 # def get_rawprices(ticker, collapse):
@@ -52,6 +53,7 @@ class Stock(object):
         return data
 
     def update_mongo_daily(start_date, end_date, Tickers):
+        print('updating')
         last_date = Stock.price_range_checker(start_date, end_date, "rawdata")
         print("yep")
         if (last_date < start_date) or (
@@ -203,7 +205,8 @@ class Stock(object):
     def Import_stocks_params(startdate, tickers):
         startdate = startdate - 1
         startdate = (
-            str(startdate)[4:6] + "/" + str(startdate)[6:8] + "/" + str(startdate)[0:4]
+            str(startdate)[4:6] + "/" +
+            str(startdate)[6:8] + "/" + str(startdate)[0:4]
         )
         startdate = datetime.datetime.strptime(startdate, "%m/%d/%Y")
         end_date = datetime.datetime.today()
@@ -250,7 +253,8 @@ class Stock(object):
         return stock
 
     def save_to_mongo(self):
-        Database.update(StockConstants.COLLECTION, {"_id": self._id}, self.json())
+        Database.update(StockConstants.COLLECTION, {
+                        "_id": self._id}, self.json())
 
     def json(self):  # Creates JSON representation of stock instance
         return {

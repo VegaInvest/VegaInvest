@@ -37,7 +37,6 @@ portfolio_blueprint = Blueprint("portfolios", __name__)
 
 
 @portfolio_blueprint.route("/portfolio")
-@user_decorators.requires_login
 def get_portfolio_page(portfolio_id):  # Renders unique portfolio page
     port = Portfolio.get_by_id(portfolio_id)
     # fig = port.plot_portfolio()
@@ -53,7 +52,6 @@ def get_portfolio_page(portfolio_id):  # Renders unique portfolio page
 
 
 @portfolio_blueprint.route("/editrisk", methods=["GET", "POST"])
-@user_decorators.requires_login
 # Views form to change portfolio's associated risk aversion parameter
 def change_risk(portfolio_id):
     port = Portfolio.get_by_id(portfolio_id)
@@ -130,17 +128,15 @@ def create_portfolio():  # Views form to create portfolio associated with active
         if e > 0:
             return jsonify({"Status": ermsg})
         else:
-            #start = datetime.datetime.now() actual
-            start = datetime.datetime(2018, 1, 2) #for simulation
-            port = run_backtest(amount_invest=amount_invest,goal=goal,horizon=horizon,
-            email= email, risk_appetite=risk_appetite,start=start, last_updated=PortfolioConstants.END_DATE)
-
-            port.save_to_mongo
-
-            #X[1][1] is annualized returns
+            # start = datetime.datetime.now() actual
+            start = datetime.datetime(2018, 1, 2)  # for simulation
+            port = Portfolio.run_backtest(amount_invest=amount_invest, goal=goal, horizon=horizon,
+                                          email=email, risk_appetite=risk_appetite, start=start, last_updated=PortfolioConstants.END_DATE)
+            port.save_to_mongo()
+            # X[1][1] is annualized returns
             #X[1][2] is vol
             #X[1][3] is sharpe
-            #X[1][-1] is vector of Portfolio value
+            # X[1][-1] is vector of Portfolio value
 
             # canvas = FigureCanvas(fig)
             # img = BytesIO()
@@ -175,28 +171,27 @@ def pushWeights(email):
         port_data = Database.find_one(
             PortfolioConstants.COLLECTION, {"user_email": email}
         )
-        date_vector = port_data['date_vector']
-        date_vector = date_vector.tolist()
         weights = port_data["curr_weights"]
-        weights=np.around(weights, 3)
-        weights=weights.tolist()
-        #print(weights*100)
-        #time_index=time_index.tolist()
-        #X[1][1] is annualized returns
+        weights = np.around(weights, 3)
+        weights = weights.tolist()
+        # print(weights*100)
+        # time_index=time_index.tolist()
+        # X[1][1] is annualized returns
         #X[1][2] is vol
         #X[1][3] is sharpe
-        #X[1][-1] is vector of Portfolio value
-        #X[1][-2] is time vector    
-        #date in yyyymmdd format, start at 7 periods (months) before required start date
+        # X[1][-1] is vector of Portfolio value
+        # X[1][-2] is time vector
+        # date in yyyymmdd format, start at 7 periods (months) before required start date
 
         return jsonify(
             {
                 "Status": "Success",
                 "weights": weights,
-                "date_vector" : date_vector
+                "date_vector": date_vector
             }
         )
     return jsonify({"Status": "error use POST request"})
+
 
 @portfolio_blueprint.route("/pushParams/<string:email>", methods=["GET", "POST"])
 def pushParams(email):
@@ -213,29 +208,32 @@ def pushParams(email):
         amount_invest = float(port_data["amount_invest"])
         start = port_data["start"]
         # time diff between present and start in years
-        time_difference = int(relativedelta(PortfolioConstants.END_DATE, start).years)
-        #time diff between present and last updated in months
-        time_diff_update = int(relativedelta(PortfolioConstants.END_DATE, last_updated).months)    
+        time_difference = int(relativedelta(
+            PortfolioConstants.END_DATE, start).years)
+        # time diff between present and last updated in months
+        time_diff_update = int(relativedelta(
+            PortfolioConstants.END_DATE, last_updated).months)
 
-        if time_diff_update > 1:     
-            port = run_backtest(amount_invest=amount_invest,goal=goal,horizon=horizon, email = email, risk_appetite=risk_appetite, start=start)
+        if time_diff_update > 1:
+            port = Portfolio.run_backtest(amount_invest=amount_invest, goal=goal, horizon=horizon,
+                                          email=email, risk_appetite=risk_appetite, start=start)
             port.save_to_mongo()
-            port_data = Database.find_one(PortfolioConstants.COLLECTION, {"user_email": email})
+            port_data = Database.find_one(
+                PortfolioConstants.COLLECTION, {"user_email": email})
 
-
-        ann_returns=float(port_data["ann_returns"])
-        ann_vol=float(port_data["ann_vol"])
-        sharpe=float(port_data["sharpe"])
-        port_val=np.array(port_data["port_val"])
+        date_vector = port_data['date_vector']
+        ann_returns = float(port_data["ann_returns"])
+        ann_vol = float(port_data["ann_vol"])
+        sharpe = float(port_data["sharpe"])
+        port_val = np.array(port_data["port_val"])
 
         # rounding
-        sharpe=np.round(sharpe,3)
-        returns=np.round(ann_returns,3)
-        vol=np.round(ann_vol,3)
-        portval=np.around(port_val*float(amount_invest), 3)
-        lastportval =portval[-1]
-        portval=portval.tolist()
-
+        sharpe = np.round(sharpe, 3)
+        returns = np.round(ann_returns, 3)
+        vol = np.round(ann_vol, 3)
+        portval = np.around(port_val*float(amount_invest), 3)
+        lastportval = portval[-1]
+        portval = portval.tolist()
 
         return jsonify(
             {
@@ -244,45 +242,16 @@ def pushParams(email):
                 "horizon": horizon,
                 "goal": goal,
                 "amount_invested": amount_invest,
-                'sharpe' : sharpe,
-                'returns' : returns,
-                'vol' : vol,
-                'time_difference' : time_difference,
-                'portval' : portval,
-                'lastportval' : lastportval,
+                'sharpe': sharpe,
+                'returns': returns,
+                'vol': vol,
+                'time_difference': time_difference,
+                'portval': portval,
+                'lastportval': lastportval,
+                'date_vector': date_vector
             }
         )
     return jsonify({"Status": "error use POST request"})
-
-def run_backtest(amount_invest,goal,horizon,email,risk_appetite,start,last_updated):
-    amount_invest = float(amount_invest)
-    last_updated = PortfolioConstants.END_DATE 
-    goal = float(goal)
-    horizon = float(horizon)
-    end = int(relativedelta(last_updated, start).years)
-    outs = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000), alpha=.1, gamma_trans=.1, gamma_risk=100000, date=Portfolio.to_integer(start), end=end*12, risk_appetite=risk_appetite)
-    curr_weights=outs[0][-1]
-    ann_returns=outs[1][1]
-    ann_vol=outs[1][2]
-    sharpe=outs[1][3]
-    port_val=outs[1][-1]    
-    date_vector = outs[1][-2]
-    port = Portfolio(
-        email,
-        risk_appetite=risk_appetite,
-        amount_invest=amount_invest,
-        goal=goal,
-        horizon=horizon,
-        curr_weights=curr_weights.tolist(),
-        ann_returns=ann_returns,
-        ann_vol=ann_vol,
-        sharpe=sharpe,
-        port_val=port_val.tolist(),
-        last_updated = last_updated,
-        start=start,
-        date_vector = date_vector.tolist()
-    )
-    return port
 
 
 # @portfolio_blueprint.route("/pushWeights/<string:email>", methods=["GET", "POST"])
