@@ -150,11 +150,16 @@ class Portfolio(object):
     #     np.fill_diagonal(cov, 0.1)
     #     return mu, cov
     def multi_period_backtesting(tickers, forecast_window, lookback, estimation_model, alpha, gamma_trans, gamma_risk, date, end, risk_appetite):
+
         # backtesting fucnction that calls a given porfolio optimzer and parameters with a selected estimation regressor as well as start and end dates
         # the portfolio evolution is then created and metrics are reported
-        date = max(Portfolio.to_integer(PortfolioConstants.START_DATE),date)
+        date = max(20160914,date)
+
+
+        # backtesting fucnction that calls a given porfolio optimzer and parameters with a selected estimation regressor as well as start and end dates
+        # the portfolio evolution is then created and metrics are reported
         #print("Start Date: ", date)
-        print(date,"\n")
+        #print(date,"\n")
         
         if risk_appetite == "high":
             print("Multi Period Sharpe Ratio Optimization")
@@ -311,10 +316,6 @@ class Portfolio(object):
         gamma_risk,
         risk_appetite,
     ):
-        if Portfolio.check_collection("rawdata") == False:
-            Stock.push_rawData(
-                PortfolioConstants.START_DATE, PortfolioConstants.END_DATE
-            )
 
         date = Portfolio.to_integer(PortfolioConstants.START_DATE)
 
@@ -743,6 +744,7 @@ class Portfolio(object):
 
 
     def save_to_mongo(self):
+        print("saved")
         Database.update(PortfolioConstants.COLLECTION, {"_id": self._id}, self.json())
 
     def json(self):  # Creates JSON representation of portfolio instance
