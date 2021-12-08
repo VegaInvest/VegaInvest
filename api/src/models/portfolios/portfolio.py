@@ -51,8 +51,12 @@ class Portfolio(object):
         amount_invest,
         goal,
         horizon,
+        curr_weights,
+        ann_returns,
+        ann_vol,
+        sharpe,
+        port_val,
         tickers=None,
-        weights=None,
         _id=None,
     ):
         self.user_email = user_email
@@ -61,6 +65,11 @@ class Portfolio(object):
         self.amount_invest = amount_invest
         self.goal = goal
         self.horizon = horizon
+        self.curr_weights = curr_weights
+        self.ann_returns = ann_returns
+        self.ann_vol = ann_vol
+        self.sharpe = sharpe
+        self.port_val = port_val
         self.start = PortfolioConstants.END_DATE #datetime.datetime.today()
         self._id = uuid.uuid4().hex if _id is None else _id
 
@@ -144,7 +153,6 @@ class Portfolio(object):
         excess_ret = data[0].resample('M').agg(lambda x: (x + 1).prod() - 1)
         factor_ret = data[1].resample('M').agg(lambda x: (x + 1).prod() - 1)
         raw_rets = data[2].resample('M').agg(lambda x: (x + 1).prod() - 1)
-        #blahhhhhhhhhhhhhhhhhhh
         weights = []
 
         height = (len(excess_ret)-lookback)//forecast_window
@@ -669,69 +677,6 @@ class Portfolio(object):
         stock_ret = stock_ret[1:]
         return stock_ret
 
-    def plot_comparison(
-        self,
-        risk_data,
-        ret_data,
-        gamma_vals,
-        risk_data_minVar,
-        ret_data_minVar,
-        std,
-        mu,
-    ):
-        """
-        Plots a figure of the efficient frontier for all risk aversion parameters along with the
-        individual assets used.
-
-        :param risk_data: (list) portfolio variances for different risk aversion parameters
-        :param ret_data: (list) portfolio expected returns for different risk aversion parameters
-        :param gamma_vals: (list) portfolio risk aversion parameters
-        :param risk_data_minVar: (float) portfolio variance for Minimum Variance portfolio
-        :param ret_data_minVar: (float) portfolio expected return for Minimum Variance portfolio
-        :param std: (np.array) standard deviation of assets used
-        :param mu: (list) expected returns of assets used
-
-        :return: Matplotlib figure object of efficient frontier
-        """
-        fig = plt.figure(figsize=(12, 6))
-        ax = fig.add_subplot(111)
-        # plt.plot(risk_data, ret_data, "g-")
-
-        for i in PortfolioConstants.RISK_APP_DICT:
-            marker = PortfolioConstants.RISK_APP_DICT.get(i)
-            # plt.plot(risk_data[marker], ret_data[marker], "bs")
-            if i == "low":
-                y = 0
-            else:
-                y = -0.0015
-
-            if i == self.risk_appetite:
-                indicator = "--> Your Portfolio"
-            else:
-                indicator = ""
-
-            ax.annotate(
-                i + " ($\gamma = %.2f$)" % gamma_vals[marker],
-                xy=(risk_data[marker] + 0.0015, ret_data[marker] + y),
-            )
-            ax.annotate(indicator, xy=(risk_data[marker] + 0.02, ret_data[marker] + y))
-
-        # plt.plot(risk_data_minVar, ret_data_minVar, "rs")
-        ax.annotate(
-            "minimum Variance",
-            xy=(risk_data_minVar - 0.015, risk_data_minVar - 0.00015),
-        )
-        n = len(PortfolioConstants.TICKERS)
-        for i in range(n):
-            # plt.plot(std[i], mu[i], "o")
-            ax.annotate(
-                PortfolioConstants.TICKERS[i], xy=(std[i] - 0.0005, mu[i] - 0.001)
-            )
-        #  plt.xlabel("Standard deviation")
-        # plt.ylabel("Return")
-        #   plt.xlim([0, 0.15])
-
-        return fig
 
     def check_collection(collectionname):
         temp = Database.getCollectionList()
@@ -740,23 +685,6 @@ class Portfolio(object):
         else:
             return False
 
-    def plot_portfolio(self):
-        """
-        Plots pie chart of portfolio constituents
-        :return: matplotlib matplotlib.figure.Figure object
-        """
-
-        fig = plt.figure(figsize=(12, 6))
-        ax = fig.add_subplot(111)
-        wts = np.around(np.array(self.weights), 10)
-        #    plt.pie(
-        #         wts,
-        #         labels=self.tickers,
-        #         explode=[0.01] * len(self.weights),
-        #         autopct="%1.1f%%",
-        #     )
-
-        return fig
 
     def save_to_mongo(self):
         Database.update(PortfolioConstants.COLLECTION, {"_id": self._id}, self.json())
@@ -771,6 +699,11 @@ class Portfolio(object):
             "goal": self.goal,
             "horizon": self.horizon,
             "start": self.start,
+            "curr_weights" : self.curr_weights,
+            "ann_returns" :  self.ann_returns,
+            "ann_vol" :  self.ann_vol,
+            "sharpe" :  self.sharpe,
+            "port_val" :  self.port_val
         }
 
     def weights_to_df(self, weights, tickers):
@@ -812,5 +745,3 @@ class Portfolio(object):
                 PortfolioConstants.COLLECTION, {"user_email": email}
             )
         ]
-
-#monkey in = monkey out

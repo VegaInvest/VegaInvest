@@ -35,4 +35,4 @@ RISK_APP_DICT = dict(
     zip(RISK_LABELS, RISK_PROFILE_INDECES)
 )  # Dict tying gamma values to risk levels
 START_DATE = datetime.datetime(2018, 1, 2)  # Start date for data collection
-END_DATE = datetime.datetime(2021, 1, 2) #datetime.datetime.today()  # End date for data collection
+END_DATE = datetime.datetime(2021, 1, 2)

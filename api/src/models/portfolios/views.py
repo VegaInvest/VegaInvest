@@ -133,24 +133,45 @@ def create_portfolio():  # Views form to create portfolio associated with active
             amount_invest = float(amount_invest)
             goal = float(goal)
             horizon = float(horizon)
+            # port.backend_output(
+            #     PortfolioConstants.TICKERS,
+            #     4,
+            #     7,
+            #     linear_model.SGDRegressor(random_state=42, max_iter=5000),
+            #     0.1,
+            #     0.1,
+            #     10000,
+            #     port.risk_appetite,
+            # )
+            #
+
+            #
+            end = int(relativedelta(PortfolioConstants.END_DATE, PortfolioConstants.START_DATE).years)
+            outs = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000),  alpha=.1, gamma_trans=10, gamma_risk=1000, date=Portfolio.to_integer(PortfolioConstants.START_DATE), end=end*12, risk_appetite=risk_appetite)
+            curr_weights=outs[0][-1]
+            ann_returns=outs[1][1]
+            ann_vol=outs[1][2]
+            sharpe=outs[1][3]
+            port_val=outs[1][-1]    
             port = Portfolio(
                 email,
                 risk_appetite=risk_appetite,
                 amount_invest=amount_invest,
                 goal=goal,
                 horizon=horizon,
+                curr_weights=curr_weights.tolist(),
+                ann_returns=ann_returns,
+                ann_vol=ann_vol,
+                sharpe=sharpe,
+                port_val=port_val.tolist()
             )
             port.save_to_mongo()
-            port.backend_output(
-                PortfolioConstants.TICKERS,
-                4,
-                7,
-                linear_model.SGDRegressor(random_state=42, max_iter=5000),
-                0.1,
-                0.1,
-                10000,
-                port.risk_appetite,
-            )
+
+            #X[1][1] is annualized returns
+            #X[1][2] is vol
+            #X[1][3] is sharpe
+            #X[1][-1] is vector of Portfolio value
+
             # canvas = FigureCanvas(fig)
             # img = BytesIO()
             # fig.savefig(img)
@@ -160,19 +181,19 @@ def create_portfolio():  # Views form to create portfolio associated with active
     return jsonify({"Status": "error use POST request"})
 
 
-@portfolio_blueprint.route("/pushPortfolioid/<string:email>", methods=["GET", "POST"])
-# @user_decorators.requires_login
-# Views form to create portfolio associated with active/ loggedin user
-def pushportid(email):
-    email = str(email)
-    if request.method == "GET":
-        port_data = Database.find_one(
-            PortfolioConstants.COLLECTION, {"user_email": email}
-        )
-        Portfolio_ID = port_data["_id"]
-        Portfolio_ID = str(Portfolio_ID)
-        return jsonify({"Portfolio_ID": Portfolio_ID})
-    return jsonify({"Status": "error use POST request"})
+# @portfolio_blueprint.route("/pushPortfolioid/<string:email>", methods=["GET", "POST"])
+# # @user_decorators.requires_login
+# # Views form to create portfolio associated with active/ loggedin user
+# def pushportid(email):
+#     email = str(email)
+#     if request.method == "GET":
+#         port_data = Database.find_one(
+#             PortfolioConstants.COLLECTION, {"user_email": email}
+#         )
+#         Portfolio_ID = port_data["_id"]
+#         Portfolio_ID = str(Portfolio_ID)
+#         return jsonify({"Portfolio_ID": Portfolio_ID})
+#     return jsonify({"Status": "error use POST request"})
 
 
 # @user_decorators.requires_login
@@ -184,31 +205,16 @@ def pushWeights(email):
         port_data = Database.find_one(
             PortfolioConstants.COLLECTION, {"user_email": email}
         )
-        risk_appetite = port_data["risk_appetite"]
-        risk_appetite = str(risk_appetite)
-        horizon = port_data["horizon"]
-        horizon = float(horizon)
-        goal = port_data["goal"]
-        goal = float(goal)
-        amount_invested = port_data["amount_invest"]
-        amount_invested = float(amount_invested)
-        x = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000),  alpha=.1, gamma_trans=10, gamma_risk=1000, date=Portfolio.to_integer(PortfolioConstants.START_DATE), end=36, risk_appetite=risk_appetite)
-        
-        # print(x[1][3], "Sharpe")
-        # print(x[1][1], "Annualized Returns")
-        # print(x[1][2], "Vol")
-        # print(x[1][-1], "Portfolio value")
-        #print(x[0]," Portfolio Weights")
-        #X[1][-2] is time vector    
-        weights=x[0][-1]
+        weights = port_data["curr_weights"]
         weights=np.around(weights, 3)
         weights=weights.tolist()
-        print(weights*100)
+        #print(weights*100)
         #time_index=time_index.tolist()
         #X[1][1] is annualized returns
         #X[1][2] is vol
         #X[1][3] is sharpe
         #X[1][-1] is vector of Portfolio value
+        #X[1][-2] is time vector    
         #date in yyyymmdd format, start at 7 periods (months) before required start date
 
         return jsonify(
@@ -226,6 +232,7 @@ def pushParams(email):
         port_data = Database.find_one(
             PortfolioConstants.COLLECTION, {"user_email": email}
         )
+        print(port_data)
         risk_appetite = port_data["risk_appetite"]
         risk_appetite = str(risk_appetite)
         horizon = port_data["horizon"]
@@ -234,24 +241,23 @@ def pushParams(email):
         goal = float(goal)
         amount_invested = port_data["amount_invest"]
         amount_invested = float(amount_invested)
-        x = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000),  alpha=.1, gamma_trans=10, gamma_risk=1000, date=Portfolio.to_integer(PortfolioConstants.START_DATE), end=36, risk_appetite=risk_appetite)
+        ann_returns=port_data["ann_returns"]
+        ann_vol=port_data["ann_vol"]
+        sharpe=port_data["sharpe"]
+        port_val=port_data["port_val"]
+        # x = Portfolio.multi_period_backtesting(PortfolioConstants.TICKERS, forecast_window=4, lookback=7, estimation_model=linear_model.SGDRegressor(random_state=42, max_iter=5000),  alpha=.1, gamma_trans=10, gamma_risk=1000, date=Portfolio.to_integer(PortfolioConstants.START_DATE), end=36, risk_appetite=risk_appetite)
         time_difference = int(relativedelta(PortfolioConstants.END_DATE, PortfolioConstants.START_DATE).years)
         # print(x[1][3], "Sharpe")
         # print(x[1][1], "Annualized Returns")
         # print(x[1][2], "Vol")
         # print(x[1][-1], "Portfolio value")
-        print(x[0]," Portfolio Weights")
         #X[1][-2] is time vector
-        sharpe=np.round(x[1][3],3)
-        returns=np.round(x[1][1],3)
-        vol=np.round(x[1][2],3)
-        portval=np.around(x[1][-1]*amount_invested, 3)
+        sharpe=np.round(sharpe,3)
+        returns=np.round(ann_returns,3)
+        vol=np.round(ann_vol,3)
+        portval=np.around(port_val*amount_invested, 3)
         lastportval =portval[-1]
         portval=portval.tolist()
-        time_index=x[1][-2]
-        
-        print(time_index)
-
         #time_index=time_index.tolist()
         #X[1][1] is annualized returns
         #X[1][2] is vol
