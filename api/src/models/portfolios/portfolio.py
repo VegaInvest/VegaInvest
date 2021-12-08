@@ -565,12 +565,11 @@ class Portfolio(object):
                 y_sum += cvx.log(y[j]) # sum up logarithm of asset contribution as per risk-parity formulation 
 
             obj = (
-<<<<<<< HEAD
                 0.5 * cvx.quad_form(y, cov[tau]) -
                 y_sum + gamma_trans * sum(cvx.abs(y))
-=======
+
                 0.5 * cvx.quad_form(y, cov[tau]) - y_sum + gamma_trans * sum(cvx.abs(y)) # objective function with transaction costs 
->>>>>>> 6ee61a7780d67291d3378fe79fbd96e65a0859bb
+
             )
 
             constr += [wplus >= 0] # risk-parity constraint 
@@ -583,7 +582,6 @@ class Portfolio(object):
 
         test = sum(prob_arr).solve(solver=cvx.SCS) # this solver was needed for risk-parity formula 
 
-<<<<<<< HEAD
     def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
         rf = 0.0025  # fed funds rate upper bound to add robustness to model,
         # can be changed to actual rfr data, but max since 2016 is 21.02 bps
@@ -601,11 +599,10 @@ class Portfolio(object):
             r_excess = mu[tau] - rf_hat
 
             wplus = w + z
-=======
         for i in z_vars:
             output_weight_list.append(i.value) # append weights to list 
         return output_weight_list
->>>>>>> 6ee61a7780d67291d3378fe79fbd96e65a0859bb
+
 
 ############ Max Sharpe Model ###############
 
