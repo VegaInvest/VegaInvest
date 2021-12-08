@@ -2,6 +2,7 @@ from flask import Flask, render_template, send_from_directory, request, jsonify
 from src.common.database import Database
 from src.models.stocks.stock import Stock
 from src.models.portfolios.portfolio import Portfolio
+import src.models.portfolios.constants as PortfolioConstants
 import src.models.stocks.constants as StockConstants
 from flask_restful import Api, Resource, reqparse
 from flask_cors import CORS  # comment this on deployment
@@ -24,6 +25,10 @@ def init_db_and_rawdata():
     end_date = datetime.datetime.today()
     start_date = end_date - datetime.timedelta(days=1)
     Database.initialize()
+    # if raw data collection does not exist at all, push it
+    if Portfolio.check_collection("rawdata") == False:
+        Stock.push_rawData(PortfolioConstants.START_DATE, end_date)
+
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         func=Stock.update_mongo_daily,
