@@ -432,7 +432,7 @@ class Portfolio(object):
 
             constr += [cvx.sum(wplus) == 1]
             constr += [wplus >= 0]
-            constr += [wplus <= 1 / 3]
+            constr += [wplus <= 1/3]
 
             prob = cvx.Problem(cvx.Maximize(obj), constr)
             prob_arr.append(prob)
@@ -485,7 +485,8 @@ class Portfolio(object):
         return beebee
 
     def multi_sharpe(mu, cov, forecast, gamma_trans, gamma_risk):
-        rf = 0.0025 # fed funds rate upper bound to add robustness to model
+        rf = 0.0025 # fed funds rate upper bound to add robustness to model, 
+        # can be changed to actual rfr data, but max since 2016 is 21.02 bps
         rf_hat = np.ones(len(mu[0])) * rf
         one_vec = np.ones(len(mu[0]))
         w = np.full(len(mu[0]), 0)
