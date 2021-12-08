@@ -56,6 +56,9 @@ class Portfolio(object):
         ann_vol,
         sharpe,
         port_val,
+        last_updated,
+        start,
+        date_vector,
         tickers=None,
         _id=None,
     ):
@@ -70,7 +73,9 @@ class Portfolio(object):
         self.ann_vol = ann_vol
         self.sharpe = sharpe
         self.port_val = port_val
-        self.start = PortfolioConstants.END_DATE #datetime.datetime.today()
+        self.last_updated = last_updated
+        self.start = start
+        self.date_vector = date_vector
         self._id = uuid.uuid4().hex if _id is None else _id
 
     def __repr__(self):
@@ -147,12 +152,21 @@ class Portfolio(object):
         #
         date = max(Portfolio.to_integer(PortfolioConstants.START_DATE),date)
         #print("Start Date: ", date)
+        print(date,"\n")
+        
+        if risk_appetite == "high":
+            print("Multi Period Sharpe Ratio Optimization")
+        elif risk_appetite == "low":
+            print("Multi Period Risk Parity Optimization")
+        else:
+            print("Multi Period MVO")
 
         data = Portfolio.Import_data_inputs(date, tickers)
 
         excess_ret = data[0].resample('M').agg(lambda x: (x + 1).prod() - 1)
         factor_ret = data[1].resample('M').agg(lambda x: (x + 1).prod() - 1)
         raw_rets = data[2].resample('M').agg(lambda x: (x + 1).prod() - 1)
+        print(raw_rets[["PALL"]])
         weights = []
 
         height = (len(excess_ret)-lookback)//forecast_window
@@ -397,9 +411,9 @@ class Portfolio(object):
         portf_ret = np.insert(np.array(portf_ret), 0, 1)
         benchmark = np.insert(np.array(benchmark), 0, 1)
 
-        plt.plot(t, portf_ret, "g-", t, benchmark, "--")
-        plt.show()
-        #print("Green - Portfolio Returns")
+        # plt.plot(t, portf_ret, "g-", t, benchmark, "--")
+        # plt.show()
+        # #print("Green - Portfolio Returns")
 
         return (
             portf_ret[-1], 
@@ -679,7 +693,7 @@ class Portfolio(object):
         )
         startdate = datetime.datetime.strptime(startdate, "%m/%d/%Y")
         end_date = PortfolioConstants.END_DATE #datetime.datetime.today()
-        stock_ret = Stock.get_from_db()[tickers][startdate:end_date]
+        stock_ret = Stock.get_from_db()[tickers]
         stock_ret = (
             stock_ret / stock_ret.shift(1) - 1
         )  # convert prices to daily returns
@@ -712,7 +726,10 @@ class Portfolio(object):
             "ann_returns" :  self.ann_returns,
             "ann_vol" :  self.ann_vol,
             "sharpe" :  self.sharpe,
-            "port_val" :  self.port_val
+            "port_val" :  self.port_val,
+            'last_updated' : self.last_updated,
+            'start' : self.start,
+            'date_vector' : self.date_vector
         }
 
     def weights_to_df(self, weights, tickers):
@@ -754,7 +771,3 @@ class Portfolio(object):
                 PortfolioConstants.COLLECTION, {"user_email": email}
             )
         ]
-<<<<<<< HEAD
-=======
-
->>>>>>> ee945c4f14748605cdd65deaa6cd7d62cf507e7d
